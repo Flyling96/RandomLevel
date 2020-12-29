@@ -7,6 +7,7 @@ namespace DragonSlay.RandomLevel
 
     public abstract class LevelMesh
     {
+        public Vector3 m_Position;
         public Vector3[] m_Vertices = null;
         public int[] m_Triangles = null;
 
@@ -18,13 +19,13 @@ namespace DragonSlay.RandomLevel
                 return;
             }
 
-            m_Triangles = new int[(vertexCount - 2) * 3];
+            m_Triangles = new int[(vertexCount - 1) * 3];
 
-            for(int i = 2; i < vertexCount;i++)
+            for(int i =0;i<vertexCount -1;i++)
             {
-                m_Triangles[(i - 2)] = 0;
-                m_Triangles[(i - 1)] = i - 1;
-                m_Triangles[i] = i;
+                m_Triangles[i * 3] = 0;
+                m_Triangles[i * 3 + 1] = i + 1;
+                m_Triangles[i * 3 + 2] = (i >= vertexCount - 2) ? 1 : i + 2;
             }
         }
 
