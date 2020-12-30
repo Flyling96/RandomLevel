@@ -16,15 +16,18 @@ namespace DragonSlay.RandomLevel
 
         Vector3 m_Up = new Vector3(0, 0, 1);
 
+        public Vector2 m_PanelPosition;
+
         public Vector2 m_Center;
 
         public Vector2[] m_Borders;
 
+        public float m_Acreage;
+
         public abstract LevelPanelType m_VertexType { get; }
 
-        public abstract void RandomVertex(object[] param);
-
         public abstract void GenerateMesh();
+
 
         public void FillMeshData()
         {
@@ -55,6 +58,7 @@ namespace DragonSlay.RandomLevel
         public virtual void SetPosition(Vector2 panelPosition)
         {
             m_Position = panelPosition.x * m_Right + panelPosition.y * m_Up;
+            m_PanelPosition = panelPosition;
         }
 
 

@@ -15,13 +15,9 @@ namespace DragonSlay.RandomLevel
             m_Height = height;
             m_Center = center;
             m_Position = pos;
+            m_Acreage = m_Width * m_Height;
         }
 
-        public override void RandomVertex(object[] param)
-        {
-            m_Width = (float)param[0];
-            m_Height = (float)param[1];
-        }
 
         public override void GenerateMesh()
         {

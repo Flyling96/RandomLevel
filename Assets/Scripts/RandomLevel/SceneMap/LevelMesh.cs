@@ -29,6 +29,14 @@ namespace DragonSlay.RandomLevel
             }
         }
 
+        public Mesh FillMesh()
+        {
+            Mesh mesh = new Mesh();
+            mesh.vertices = m_Vertices;
+            mesh.triangles = m_Triangles;
+            return mesh;
+        }
+
         public void GenerateVoxel()
         {
 

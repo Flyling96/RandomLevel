@@ -23,8 +23,8 @@ namespace DragonSlay.RandomLevel
         [SerializeField, Header("房间数量")]
         private int m_NeedMainRoom = 5;
 
-        [SerializeField, Header("房间筛选，以宽高之和判定")]
-        private int m_RoomFilter = 200;
+        [SerializeField, Header("房间筛选，以面积判定")]
+        private int m_RoomFilter = 300;
 
         [SerializeField, Range(50, 200), Header("随机宽高范围")]
         private int m_PointRandomRange = 120;
@@ -32,11 +32,22 @@ namespace DragonSlay.RandomLevel
         [SerializeField, Range(0, 1f), Header("融合三角剖分百分比")]
         private float m_MixPersents = 0.15f;
 
-        List<LevelMesh> m_LevelMeshList = new List<LevelMesh>();
+        public List<LevelMesh> m_LevelMeshList = new List<LevelMesh>();
+
+        public List<LevelPanel> m_RoomPanelList = new List<LevelPanel>();
+
+        public List<LevelEdge> m_EdgeList = new List<LevelEdge>();
+
+        public void Clear()
+        {
+            m_LevelMeshList.Clear();
+            m_RoomPanelList.Clear();
+        }
 
         public void GenerateMesh()
         {
-            m_LevelMeshList.Clear();
+            Clear();
+
             Vector2[] allRect = new Vector2[m_InitCount];
             while (true)
             {
@@ -46,13 +57,13 @@ namespace DragonSlay.RandomLevel
                     Vector2 rect;
                     if (main_count == m_NeedMainRoom)
                     {
-                        rect = new Vector2(Random.Range(50, m_RoomFilter / 2), Random.Range(50, m_RoomFilter / 2));
+                        rect = new Vector2(Random.Range(50, Mathf.Sqrt(m_RoomFilter)), Random.Range(50, Mathf.Sqrt(m_RoomFilter)));
                     }
                     else
                     {
                         rect = new Vector2(Random.Range(50, m_PointRandomRange), Random.Range(50, m_PointRandomRange));
                     }
-                    if (rect.x + rect.y > m_RoomFilter)
+                    if (rect.x * rect.y > m_RoomFilter)
                     {
                         main_count++;
                     }
@@ -71,6 +82,10 @@ namespace DragonSlay.RandomLevel
                 RectPanel rectPanel = new RectPanel(rect.x, rect.y, Vector2.zero, pos);
                 rectPanel.GenerateMesh();
                 m_LevelMeshList.Add(rectPanel);
+                if(rectPanel.m_Acreage > m_RoomFilter)
+                {
+                    m_RoomPanelList.Add(rectPanel);
+                }
             }
 
         }
@@ -94,11 +109,7 @@ namespace DragonSlay.RandomLevel
             Mesh[] result = new Mesh[m_LevelMeshList.Count];
             for(int i =0;i< m_LevelMeshList.Count;i++)
             {
-                var meshData = m_LevelMeshList[i];
-                var mesh = new Mesh();
-                mesh.vertices = meshData.m_Vertices;
-                mesh.triangles = meshData.m_Triangles;
-                result[i] = mesh;
+                result[i] = m_LevelMeshList[i].FillMesh();
             }
             return result;
         }
@@ -158,6 +169,75 @@ namespace DragonSlay.RandomLevel
                     var polygon = m_PolygonList[i];
                     levelPanel.SetPosition(polygon.m_Position);
                 }
+            }
+
+        }
+
+        public void GenerateEdge()
+        {
+            //三角剖分
+            List<UVertex2D> vertexs = new List<UVertex2D>();
+            for (int i = 0; i < m_RoomPanelList.Count; i++)
+            {
+                vertexs.Add(new UVertex2D(i, m_RoomPanelList[i].m_PanelPosition));
+            }
+            var delaunayResult = UDelaunayBest.GetTriangles2D(vertexs);
+
+            Dictionary<int, UVertex2D> dict = new Dictionary<int, UVertex2D>();
+            for (int i = 0; i < delaunayResult.Vertexes.Count; i++)
+            {
+                if (dict.ContainsKey(delaunayResult.Vertexes[i].Id))
+                {
+                    continue;
+                }
+                dict.Add(delaunayResult.Vertexes[i].Id, delaunayResult.Vertexes[i]);
+            }
+            var edges = new List<UEdge2D>();
+            for (int i = vertexs.Count - 1; i >= 0; i--)
+            {
+                for (int j = 0; j < i; j++)
+                {
+                    edges.Add(new UEdge2D(vertexs[i], vertexs[j]));
+                }
+            }
+            //最小生成树
+            var spanningTreeEdges = SpanningTree.Kruskal(dict, edges);
+            //delaunay中去重排序
+            for (int i = 0; i < spanningTreeEdges.Count; i++)
+            {
+                for (int j = delaunayResult.Edges.Count - 1; j >= 0; j--)
+                {
+                    if (spanningTreeEdges[i].IsEquals(delaunayResult.Edges[j]))
+                    {
+                        delaunayResult.Edges.RemoveAt(j);
+                    }
+                }
+            }
+            delaunayResult.Edges.Sort((a, b) =>
+            {
+                if (a.Distance > b.Distance)
+                {
+                    return -1;
+                }
+                else
+                {
+                    return 1;
+                }
+            });
+
+            //添加边
+            //int count = (int)(delaunayResult.Edges.Count * m_MixPersents);
+            //for (int i = 0; i < count; i++)
+            //{
+            //    spanningTreeEdges.Add(delaunayResult.Edges[i]);
+            //}
+
+            for(int i =0;i< spanningTreeEdges.Count;i++)
+            {
+                var edge = spanningTreeEdges[i];
+                var levelEdge = new LevelEdge(edge,5);
+                levelEdge.GenerateMesh();
+                m_EdgeList.Add(levelEdge);
             }
 
         }

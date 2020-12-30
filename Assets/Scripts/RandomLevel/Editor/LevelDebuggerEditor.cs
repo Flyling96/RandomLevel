@@ -14,7 +14,27 @@ namespace DragonSlay.RandomLevel
             var debugger = target as LevelDebugger;
             if(GUILayout.Button("GenerateMesh"))
             {
-                debugger.GenerateMesh();
+                debugger.GenerateAllPanel();
+            }
+            if (GUILayout.Button("CollsionSimulate"))
+            {
+                debugger.CollsionSimulate(100);
+            }
+            if (GUILayout.Button("FilterMinor"))
+            {
+                debugger.FilterMinorPanel();
+            }
+            if(GUILayout.Button("GenerateEdge"))
+            {
+                debugger.GenerateEdge();
+            }
+            if (GUILayout.Button("Clear"))
+            {
+                debugger.Clear();
+            }
+            if (GUILayout.Button("EdgeMeshTest"))
+            {
+                debugger.EdgeMeshTest();
             }
         }
     }
