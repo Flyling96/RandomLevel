@@ -18,7 +18,7 @@ namespace DragonSlay.RandomLevel
             }
             if (GUILayout.Button("CollsionSimulate"))
             {
-                debugger.CollsionSimulate(100);
+                debugger.CollsionSimulate(500);
             }
             if (GUILayout.Button("FilterMinor"))
             {
@@ -27,6 +27,10 @@ namespace DragonSlay.RandomLevel
             if(GUILayout.Button("GenerateEdge"))
             {
                 debugger.GenerateEdge();
+            }
+            if (GUILayout.Button("GenerateVoxel"))
+            {
+                debugger.GenerateVoxel();
             }
             if (GUILayout.Button("Clear"))
             {

@@ -10,17 +10,12 @@ namespace DragonSlay.RandomLevel
         Sphere,
     }
 
-    public abstract class LevelPanel:LevelMesh
+
+    public abstract class LevelPanel:LevelMesh2D
     {
-        Vector3 m_Right = new Vector3(1, 0, 0);
-
-        Vector3 m_Up = new Vector3(0, 0, 1);
-
         public Vector2 m_PanelPosition;
 
         public Vector2 m_Center;
-
-        public Vector2[] m_Borders;
 
         public float m_Acreage;
 
@@ -60,6 +55,7 @@ namespace DragonSlay.RandomLevel
             m_Position = panelPosition.x * m_Right + panelPosition.y * m_Up;
             m_PanelPosition = panelPosition;
         }
+
 
 
     }

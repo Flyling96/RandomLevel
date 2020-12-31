@@ -175,6 +175,7 @@ namespace DragonSlay.RandomLevel
 
         public void GenerateEdge()
         {
+            m_EdgeList.Clear();
             //三角剖分
             List<UVertex2D> vertexs = new List<UVertex2D>();
             for (int i = 0; i < m_RoomPanelList.Count; i++)
@@ -226,13 +227,13 @@ namespace DragonSlay.RandomLevel
             });
 
             //添加边
-            //int count = (int)(delaunayResult.Edges.Count * m_MixPersents);
-            //for (int i = 0; i < count; i++)
-            //{
-            //    spanningTreeEdges.Add(delaunayResult.Edges[i]);
-            //}
+            int count = (int)(delaunayResult.Edges.Count * m_MixPersents);
+            for (int i = 0; i < count; i++)
+            {
+                spanningTreeEdges.Add(delaunayResult.Edges[i]);
+            }
 
-            for(int i =0;i< spanningTreeEdges.Count;i++)
+            for (int i =0;i< spanningTreeEdges.Count;i++)
             {
                 var edge = spanningTreeEdges[i];
                 var levelEdge = new LevelEdge(edge,5);
@@ -240,6 +241,19 @@ namespace DragonSlay.RandomLevel
                 m_EdgeList.Add(levelEdge);
             }
 
+        }
+
+        public void GenerateVoxel()
+        {
+            for(int i =0;i< m_RoomPanelList.Count;i++)
+            {
+                m_RoomPanelList[i].GenerateVoxel(1);
+            }
+
+            for(int i = 0; i < m_EdgeList.Count;i++)
+            {
+                m_EdgeList[i].GenerateVoxel(1);
+            }
         }
 
     }

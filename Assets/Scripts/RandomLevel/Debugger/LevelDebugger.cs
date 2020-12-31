@@ -11,7 +11,7 @@ namespace DragonSlay.RandomLevel
 
         public Material m_MeshMaterial;
 
-        public List<GameObject> m_MeshGoList = new List<GameObject>();
+        public Dictionary<LevelMesh, GameObject> m_MeshGoDic = new Dictionary<LevelMesh, GameObject>();
 
        
         public void Awake()
@@ -21,18 +21,18 @@ namespace DragonSlay.RandomLevel
 
         public void Clear()
         {
-            for (int i = 0; i < m_MeshGoList.Count; i++)
+            foreach (var go in m_MeshGoDic.Values)
             {
                 if (Application.isPlaying)
                 {
-                    Destroy(m_MeshGoList[i]);
+                    Destroy(go);
                 }
                 else
                 {
-                    DestroyImmediate(m_MeshGoList[i]);
+                    DestroyImmediate(go);
                 }
             }
-            m_MeshGoList.Clear();
+            m_MeshGoDic.Clear();
         }
 
         public void GenerateAllPanel()
@@ -66,7 +66,7 @@ namespace DragonSlay.RandomLevel
                     goName = "Minor Panel";
                 }
 
-                m_MeshGoList.Add(CreateMeshGameObject(mesh,pos,goName,Random.ColorHSV()));
+                m_MeshGoDic.Add(meshData,CreateMeshGameObject(mesh,pos,goName,Random.ColorHSV()));
             }
         }
 
@@ -85,12 +85,15 @@ namespace DragonSlay.RandomLevel
 
         public void FilterMinorPanel()
         {
-            for(int i = m_MeshGoList.Count - 1; i > -1; i--)
+            List<LevelMesh> removeKeys = new List<LevelMesh>();
+            foreach (var keyValue in m_MeshGoDic)
             {
-                var go = m_MeshGoList[i];
-                if(go.name.Contains("Minor"))
+                var meshData = keyValue.Key;
+                var go = keyValue.Value;
+
+                if(!(meshData is LevelPanel levelPanel && m_LevelGraph.m_RoomPanelList.Contains(levelPanel)))
                 {
-                    m_MeshGoList.RemoveAt(i);
+                    removeKeys.Add(meshData);
                     if (Application.isPlaying)
                     {
                         Destroy(go);
@@ -100,6 +103,11 @@ namespace DragonSlay.RandomLevel
                         DestroyImmediate(go);
                     }
                 }
+            }
+
+            for(int i =0;i< removeKeys.Count;i++)
+            {
+                m_MeshGoDic.Remove(removeKeys[i]);
             }
         }
 
@@ -120,10 +128,51 @@ namespace DragonSlay.RandomLevel
 
             for (int i = 0; i < m_LevelGraph.m_EdgeList.Count; i++)
             {
+                var meshData = m_LevelGraph.m_EdgeList[i];
                 var mesh = meshes[i];
                 var pos = positions[i];
-                m_MeshGoList.Add(CreateMeshGameObject(mesh, pos, "Edge",Color.red));
+                m_MeshGoDic.Add(meshData,CreateMeshGameObject(mesh, pos, "Edge",Color.red));
             }
+        }
+
+        public void GenerateVoxel()
+        {
+            foreach(var keyValue in m_MeshGoDic)
+            {
+                var meshData = keyValue.Key;
+                var go = keyValue.Value;
+                for(int i =0;i< go.transform.childCount;i++)
+                {
+                    var child = go.transform.GetChild(i);
+                    if (Application.isPlaying)
+                    {
+                        Destroy(child);
+                    }
+                    else
+                    {
+                        DestroyImmediate(child);
+                    }
+                }
+
+                meshData.GenerateVoxel(1);
+                for(int i =0;i< meshData.m_Voxels.Count;i++)
+                {
+                    var voxel = meshData.m_Voxels[i];
+                    var pos = voxel.m_Position;
+                    Mesh mesh = voxel.FillMesh();
+                    Color color = Color.white;
+                    if(voxel is LevelCell levelCell)
+                    {
+                        if(!levelCell.m_IsShow)
+                        {
+                            color = Color.black;
+                        }
+                    }
+                    var cell =  CreateMeshGameObject(mesh, pos, "Cell", color);
+                    cell.transform.parent = go.transform;
+                }
+            }
+            
         }
 
         public void CollsionSimulate(int simulateCount)
@@ -135,9 +184,11 @@ namespace DragonSlay.RandomLevel
         public void UpdateMeshPosition()
         {
             Vector3[] positions = m_LevelGraph.GetMeshPositions();
-            for(int i=0;i< m_MeshGoList.Count;i++)
+            foreach (KeyValuePair<LevelMesh, GameObject> keyValue in m_MeshGoDic)
             {
-                m_MeshGoList[i].transform.position = positions[i];
+                var meshData = keyValue.Key;
+                var go = keyValue.Value;
+                go.transform.position = meshData.m_Position;
             }
         }
 
@@ -158,7 +209,7 @@ namespace DragonSlay.RandomLevel
             var render = go.AddComponent<MeshRenderer>();
             render.sharedMaterial = new Material(m_MeshMaterial);
 
-            m_MeshGoList.Add(go);
+            m_MeshGoDic.Add(edge,go);
         }
 
     }

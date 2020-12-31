@@ -6,7 +6,12 @@ namespace DragonSlay.RandomLevel
 {
     public class LevelVoxel
     {
-        Vector3 m_Center;
-        int m_Size = 1;
+        public Vector3 m_Position;
+        public int m_Size = 1;
+
+        public virtual Mesh FillMesh()
+        {
+            return null;
+        }
     }
 }

@@ -155,11 +155,10 @@ MonoBehaviour:
     m_Height: 400
     m_InitCount: 30
     m_NeedMainRoom: 5
-    m_RoomFilter: 200
+    m_RoomFilter: 12000
     m_PointRandomRange: 120
     m_MixPersents: 0.15
   m_MeshMaterial: {fileID: 2100000, guid: 094f674f81742664498565dc5b1d51b7, type: 2}
-  m_MeshGoList: []
 --- !u!4 &485153693
 Transform:
   m_ObjectHideFlags: 0

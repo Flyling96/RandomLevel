@@ -9,11 +9,8 @@ namespace DragonSlay.RandomLevel
 
     }
 
-    public class LevelEdge : LevelMesh
+    public class LevelEdge : LevelMesh2D
     {
-        Vector3 m_Right = new Vector3(1, 0, 0);
-
-        Vector3 m_Up = new Vector3(0, 0, 1);
 
         Vector2 m_Start;
         Vector2 m_End;
@@ -27,7 +24,17 @@ namespace DragonSlay.RandomLevel
             m_Position.y = 0.1f;
             m_Start = Vector2.zero;
             m_End = data.Points[1].Point - data.Points[0].Point;
-            m_MidPoints = new Vector2[0];
+            float RandomX = Random.Range(0, m_End.x);
+            float RandomY = Random.Range(0, m_End.y);
+            if(RandomY < RandomX)
+            {
+                m_MidPoints = new Vector2[2] { new Vector2(m_Start.x, RandomY), new Vector2(m_End.x, RandomY) };
+            }
+            else
+            {
+                m_MidPoints = new Vector2[2] { new Vector2(RandomX, m_Start.y), new Vector2(RandomX, m_End.y) };
+            }
+            //m_MidPoints = new Vector2[1] { new Vector2(m_Start.x,m_End.y)};
             m_EdgeWidth = width;
         }
 
@@ -114,8 +121,44 @@ namespace DragonSlay.RandomLevel
                 vertexArray[i] = vertexList[i].x * m_Right + vertexList[i].y * m_Up;
             }
 
+            FillBorders(vertexList);
+
             m_Vertices = vertexArray;
             m_Triangles = triangleList.ToArray();
+        }
+
+        void FillBorders(List<Vector2> vertexList)
+        {
+            int centerPointCount = vertexList.Count / 3;
+            List<Vector2> borderList = new List<Vector2>();
+            for(int i = 0; i < centerPointCount; i++)
+            {
+                int index = i * 3 + 1;
+                borderList.Add(vertexList[index]);
+            }
+
+            for(int i = centerPointCount - 1; i > -1; i --)
+            {
+                int index = i * 3 + 2;
+                borderList.Add(vertexList[index]);
+            }
+
+            var v0 = borderList[1] - borderList[0];
+            var v1 = borderList[2] - borderList[1];
+            //逆时针反转
+            if(v0.x * v1.y - v1.x * v0.y > 0)
+            {
+                List<Vector2> newBorderList = new List<Vector2>();
+                for(int i = borderList.Count - 1; i > -1;i--)
+                {
+                    newBorderList.Add(borderList[i]);
+                }
+                m_Borders = newBorderList.ToArray();
+            }
+            else
+            {
+                m_Borders = borderList.ToArray();
+            }
         }
 
         void FillTriangle(Vector2 p0,Vector2 p1,Vector2 p2,int t0,int t1,int t2,List<int> list)
@@ -163,5 +206,6 @@ namespace DragonSlay.RandomLevel
             }
             return result;
         }
+
     }
 }
