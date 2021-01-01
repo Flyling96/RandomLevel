@@ -21,8 +21,9 @@ namespace DragonSlay.RandomLevel
 
         public void Clear()
         {
-            foreach (var go in m_MeshGoDic.Values)
+            for(int i = transform.childCount -1; i > -1;i--)
             {
+                var go = transform.GetChild(i).gameObject;
                 if (Application.isPlaying)
                 {
                     Destroy(go);
@@ -42,7 +43,7 @@ namespace DragonSlay.RandomLevel
             Mesh[] meshes = new Mesh[m_LevelGraph.m_LevelMeshList.Count];
             for (int i = 0; i < m_LevelGraph.m_LevelMeshList.Count; i++)
             {
-                meshes[i] = m_LevelGraph.m_LevelMeshList[i].FillMesh();
+                meshes[i] = m_LevelGraph.m_LevelMeshList[i].ConvertMesh();
             }
 
             Vector3[] positions = new Vector3[m_LevelGraph.m_LevelMeshList.Count];
@@ -117,7 +118,7 @@ namespace DragonSlay.RandomLevel
             Mesh[] meshes = new Mesh[m_LevelGraph.m_EdgeList.Count];
             for (int i = 0; i < m_LevelGraph.m_EdgeList.Count; i++)
             {
-                meshes[i] = m_LevelGraph.m_EdgeList[i].FillMesh();
+                meshes[i] = m_LevelGraph.m_EdgeList[i].ConvertMesh();
             }
 
             Vector3[] positions = new Vector3[m_LevelGraph.m_EdgeList.Count];
@@ -137,40 +138,52 @@ namespace DragonSlay.RandomLevel
 
         public void GenerateVoxel()
         {
+            m_LevelGraph.GenerateVoxel();
             foreach(var keyValue in m_MeshGoDic)
             {
                 var meshData = keyValue.Key;
                 var go = keyValue.Value;
-                for(int i =0;i< go.transform.childCount;i++)
+                if(go == null)
+                {
+                    continue;
+                }
+
+                for (int i = go.transform.childCount - 1; i > -1; i--)
                 {
                     var child = go.transform.GetChild(i);
                     if (Application.isPlaying)
                     {
-                        Destroy(child);
+                        Destroy(child.gameObject);
                     }
                     else
                     {
-                        DestroyImmediate(child);
+                        DestroyImmediate(child.gameObject);
                     }
                 }
 
-                meshData.GenerateVoxel(1);
-                for(int i =0;i< meshData.m_Voxels.Count;i++)
-                {
-                    var voxel = meshData.m_Voxels[i];
-                    var pos = voxel.m_Position;
-                    Mesh mesh = voxel.FillMesh();
-                    Color color = Color.white;
-                    if(voxel is LevelCell levelCell)
-                    {
-                        if(!levelCell.m_IsShow)
-                        {
-                            color = Color.black;
-                        }
-                    }
-                    var cell =  CreateMeshGameObject(mesh, pos, "Cell", color);
-                    cell.transform.parent = go.transform;
-                }
+                Mesh voxelMesh = meshData.ConvertVoxelMesh();
+                Vector3 pos = m_LevelGraph.CalculateVoxelMeshPos(meshData);
+                var cell = CreateMeshGameObject(voxelMesh, pos, "Cell", Color.white);
+                cell.transform.parent = go.transform;
+                cell.transform.position += Vector3.up * 0.01f;
+
+                //for (int i =0;i< meshData.m_Voxels.Count;i++)
+                //{
+                //    var voxel = meshData.m_Voxels[i];
+                //    var pos = voxel.m_Position;
+                //    Mesh mesh = voxel.ConvertMesh();
+                //    Color color = Color.white;
+                //    if(voxel is LevelCell levelCell)
+                //    {
+                //        if(!levelCell.m_IsShow)
+                //        {
+                //            color = Color.black;
+                //        }
+                //    }
+
+                //    var cell =  CreateMeshGameObject(mesh, pos, "Cell", color);
+                //    cell.transform.parent = go.transform;
+                //}
             }
             
         }
@@ -200,7 +213,7 @@ namespace DragonSlay.RandomLevel
             mids = new Vector2[0];
             LevelEdge edge = new LevelEdge(start,end,mids,1);
             edge.GenerateMesh();
-            Mesh edgeMesh = edge.FillMesh();
+            Mesh edgeMesh = edge.ConvertMesh();
 
             GameObject go = new GameObject();
             go.transform.parent = transform;

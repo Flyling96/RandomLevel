@@ -46,6 +46,7 @@ namespace DragonSlay.RandomLevel
             m_EdgeWidth = width;
         }
 
+
         public void GenerateMesh()
         {
             Vector2 startPoint , midPoint, endPoint;
@@ -206,6 +207,56 @@ namespace DragonSlay.RandomLevel
             }
             return result;
         }
+
+        public override void GenerateVoxel(int voxelSize)
+        {
+            int pointCount = m_Borders.Length / 2;
+            HashSet<Vector2> voxelCenterSet = new HashSet<Vector2>();
+            for (int i = 0; i < pointCount - 1; i++)
+            {
+                Vector2 v0 = m_Borders[i];
+                Vector2 v1 = m_Borders[i + 1];
+                Vector2 v2 = m_Borders[m_Borders.Length - 1 - i];
+                Vector2 v3 = m_Borders[m_Borders.Length - 2 - i];
+                var aabb2D = new AABoundingBox2D(new Vector2[4] { v0, v1, v2, v3 });
+
+                int minX = (int)aabb2D.m_Min.x / voxelSize * voxelSize;
+                int minY = (int)aabb2D.m_Min.y / voxelSize * voxelSize;
+                int maxX = (int)aabb2D.m_Max.x / voxelSize * voxelSize + voxelSize;
+                int maxY = (int)aabb2D.m_Max.y / voxelSize * voxelSize + voxelSize;
+
+                for (int j = minY; j < maxY + 1; j += voxelSize)
+                {
+                    for (int k = minX; k < maxX + 1; k += voxelSize)
+                    {
+                        voxelCenterSet.Add(new Vector2(k, j));
+                    }
+                }
+            }
+
+            foreach(var center in voxelCenterSet)
+            {
+                LevelCell levelCell = new LevelCell(center, m_Right, m_Up, voxelSize);
+                if (Mathf.Abs(center.x) < voxelSize && Mathf.Abs(center.y) < voxelSize)
+                {
+                    m_StartVoxel = levelCell;
+                }
+                if (IsPointInside(center))
+                {
+                    levelCell.m_IsShow = true;
+                }
+                else
+                {
+                    levelCell.m_IsShow = false;
+                }
+                m_Voxels.Add(levelCell);
+            }
+        }
+
+        //public override Vector3 CalculateVoxelMeshPos(Vector3 pos, int voxelSize)
+        //{
+        //    return pos;
+        //}
 
     }
 }

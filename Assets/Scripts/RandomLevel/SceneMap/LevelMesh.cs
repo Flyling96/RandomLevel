@@ -8,6 +8,20 @@ namespace DragonSlay.RandomLevel
     {
         public Vector2 m_Min;
         public Vector2 m_Max;
+
+        public AABoundingBox2D(Vector2[] vertices)
+        {
+            m_Min = new Vector2(float.MaxValue, float.MaxValue);
+            m_Max = new Vector2(float.MinValue, float.MinValue);
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                var vertex = vertices[i];
+                if (vertex.x > m_Max.x) m_Max.x = vertex.x;
+                else if (vertex.x < m_Min.x) m_Min.x = vertex.x;
+                if (vertex.y > m_Max.y) m_Max.y = vertex.y;
+                else if (vertex.y < m_Min.y) m_Min.y = vertex.y;
+            }
+        }
     }
 
     public struct AABoundingBox
@@ -26,17 +40,17 @@ namespace DragonSlay.RandomLevel
 
         public virtual AABoundingBox2D GetAABB2D()
         {
-            AABoundingBox2D aabb2D = new AABoundingBox2D();
-            aabb2D.m_Min = new Vector2(float.MaxValue, float.MaxValue);
-            aabb2D.m_Max = new Vector2(float.MinValue, float.MinValue);
-            for (int i = 0; i < m_Borders.Length; i++)
-            {
-                var vertex = m_Borders[i];
-                if (vertex.x > aabb2D.m_Max.x) aabb2D.m_Max.x = vertex.x;
-                else if (vertex.x < aabb2D.m_Min.x) aabb2D.m_Min.x = vertex.x;
-                if (vertex.y > aabb2D.m_Max.y) aabb2D.m_Max.y = vertex.y;
-                else if (vertex.y < aabb2D.m_Min.y) aabb2D.m_Min.y = vertex.y;
-            }
+            AABoundingBox2D aabb2D = new AABoundingBox2D(m_Borders);
+            //aabb2D.m_Min = new Vector2(float.MaxValue, float.MaxValue);
+            //aabb2D.m_Max = new Vector2(float.MinValue, float.MinValue);
+            //for (int i = 0; i < m_Borders.Length; i++)
+            //{
+            //    var vertex = m_Borders[i];
+            //    if (vertex.x > aabb2D.m_Max.x) aabb2D.m_Max.x = vertex.x;
+            //    else if (vertex.x < aabb2D.m_Min.x) aabb2D.m_Min.x = vertex.x;
+            //    if (vertex.y > aabb2D.m_Max.y) aabb2D.m_Max.y = vertex.y;
+            //    else if (vertex.y < aabb2D.m_Min.y) aabb2D.m_Min.y = vertex.y;
+            //}
             return aabb2D;
         }
 
@@ -55,6 +69,10 @@ namespace DragonSlay.RandomLevel
                 {
                     Vector2 center = new Vector2(i, j);
                     LevelCell levelCell = new LevelCell(center, m_Right, m_Up, voxelSize);
+                    if (Mathf.Abs(i) < voxelSize && Mathf.Abs(j) < voxelSize)
+                    {
+                        m_StartVoxel = levelCell;
+                    }
                     if (IsPointInside(center))
                     {
                         levelCell.m_IsShow = true;
@@ -66,6 +84,15 @@ namespace DragonSlay.RandomLevel
                     m_Voxels.Add(levelCell);
                 }
             }
+        }
+
+        public override Vector3 CalculateVoxelMeshPos(Vector3 pos, int voxelSize)
+        {
+            Vector2 panelPos = new Vector2(Vector3.Dot(pos, m_Right), Vector3.Dot(pos, m_Up));
+            panelPos.x = (int)panelPos.x / voxelSize * voxelSize;
+            panelPos.y = (int)panelPos.y / voxelSize * voxelSize;
+            Vector3 result = panelPos.x * m_Right + panelPos.y * m_Up;
+            return result;
         }
 
         public virtual bool IsPointInside(Vector2 point)
@@ -99,8 +126,10 @@ namespace DragonSlay.RandomLevel
         public Vector3 m_Position;
         public Vector3[] m_Vertices = null;
         public int[] m_Triangles = null;
+        //public int m_VoxelSize;
 
         public List<LevelVoxel> m_Voxels = new List<LevelVoxel>();
+        public LevelVoxel m_StartVoxel;
 
         public void GenerateTriangles()
         {
@@ -120,13 +149,41 @@ namespace DragonSlay.RandomLevel
             }
         }
 
-        public Mesh FillMesh()
+        public Mesh ConvertMesh()
         {
             Mesh mesh = new Mesh();
             mesh.vertices = m_Vertices;
             mesh.triangles = m_Triangles;
             return mesh;
         }
+
+        public Mesh ConvertVoxelMesh()
+        {
+            List<Vector3> vertexList = new List<Vector3>();
+            List<int> triangleList = new List<int>();
+            List<Color> colorList = new List<Color>();
+
+            Vector3 startPos = m_StartVoxel!= null ? m_StartVoxel.m_Position : Vector3.zero;
+            for(int i =0;i< m_Voxels.Count;i++)
+            {
+                var voxel = m_Voxels[i];
+                voxel.FillMesh(vertexList, triangleList, startPos);
+                voxel.SetMeshColor(colorList,LevelVoxel.VertexColorType.Show);
+            }
+
+            Mesh mesh = new Mesh();
+            if(vertexList.Count > 65535)
+            {
+                mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            }
+            mesh.vertices = vertexList.ToArray();
+            mesh.triangles = triangleList.ToArray();
+            mesh.colors = colorList.ToArray();
+
+            return mesh;
+        }
+
+        public virtual Vector3 CalculateVoxelMeshPos(Vector3 pos, int voxelSize) { return Vector3.zero; }
 
         public abstract void GenerateVoxel(int voxelSize);
 

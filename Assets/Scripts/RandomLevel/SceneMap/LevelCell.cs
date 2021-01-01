@@ -23,11 +23,56 @@ namespace DragonSlay.RandomLevel
             m_Position = m_Center.x * m_Right + m_Center.y * m_Up;
         }
 
-        public override Mesh FillMesh()
+        public override Mesh ConvertMesh()
         {
             RectPanel rectPanel = new RectPanel(m_Size, m_Size, Vector2.zero, m_Position);
             rectPanel.GenerateMesh();
-            return rectPanel.FillMesh();
+            return rectPanel.ConvertMesh();
+        }
+
+        int subMeshCenterIndex = 0;
+        int subMeshVerticesCount = 0;
+
+        public override void FillMesh(List<Vector3> vertexList, List<int> triangleList,Vector3 startPos)
+        {
+            Mesh subMesh = ConvertMesh();
+            var subVertices = subMesh.vertices;
+            var subTriangles = subMesh.triangles;
+            subMeshVerticesCount = subVertices.Length;
+            subMeshCenterIndex = vertexList.Count;
+            Vector3 posOffset = m_Position - startPos;
+            for(int i =0;i<subVertices.Length;i++)
+            {
+                Vector3 newVertex = subVertices[i] + posOffset;
+                vertexList.Add(newVertex);
+            }
+
+            for(int i =0;i<subTriangles.Length;i++)
+            {
+                int newIndex = subMeshCenterIndex + subTriangles[i];
+                triangleList.Add(newIndex);
+            }
+        }
+
+        public override void SetMeshColor(List<Color> colorList, VertexColorType colorType)
+        {
+            Color centerColor = GetVertexColor(colorType);
+            Color borderColor = Color.black;
+            colorList.Add(centerColor);
+            for(int i =0;i< subMeshVerticesCount -1;i++)
+            {
+                colorList.Add(borderColor);
+            }
+        }
+
+        Color GetVertexColor(VertexColorType colorType)
+        {
+            switch(colorType)
+            {
+                case VertexColorType.Show:
+                    return Color.white;
+            }
+            return Color.black;
         }
     }
 }

@@ -32,6 +32,9 @@ namespace DragonSlay.RandomLevel
         [SerializeField, Range(0, 1f), Header("融合三角剖分百分比")]
         private float m_MixPersents = 0.15f;
 
+        [SerializeField, Header("Cell的大小")]
+        private int m_CellSize = 1;
+
         public List<LevelMesh> m_LevelMeshList = new List<LevelMesh>();
 
         public List<LevelPanel> m_RoomPanelList = new List<LevelPanel>();
@@ -49,6 +52,7 @@ namespace DragonSlay.RandomLevel
             Clear();
 
             Vector2[] allRect = new Vector2[m_InitCount];
+            m_RoomFilter = Mathf.Min((m_PointRandomRange - 10) * (m_PointRandomRange - 10), m_RoomFilter);
             while (true)
             {
                 int main_count = 0;
@@ -109,7 +113,7 @@ namespace DragonSlay.RandomLevel
             Mesh[] result = new Mesh[m_LevelMeshList.Count];
             for(int i =0;i< m_LevelMeshList.Count;i++)
             {
-                result[i] = m_LevelMeshList[i].FillMesh();
+                result[i] = m_LevelMeshList[i].ConvertMesh();
             }
             return result;
         }
@@ -180,7 +184,7 @@ namespace DragonSlay.RandomLevel
             List<UVertex2D> vertexs = new List<UVertex2D>();
             for (int i = 0; i < m_RoomPanelList.Count; i++)
             {
-                vertexs.Add(new UVertex2D(i, m_RoomPanelList[i].m_PanelPosition));
+                vertexs.Add(new UVertex2D(i, m_RoomPanelList[i].m_PanelPosition + m_RoomPanelList[i].m_Center));
             }
             var delaunayResult = UDelaunayBest.GetTriangles2D(vertexs);
 
@@ -247,14 +251,20 @@ namespace DragonSlay.RandomLevel
         {
             for(int i =0;i< m_RoomPanelList.Count;i++)
             {
-                m_RoomPanelList[i].GenerateVoxel(1);
+                m_RoomPanelList[i].GenerateVoxel(m_CellSize);
             }
 
-            for(int i = 0; i < m_EdgeList.Count;i++)
+            for (int i = 0; i < m_EdgeList.Count; i++)
             {
-                m_EdgeList[i].GenerateVoxel(1);
+                m_EdgeList[i].GenerateVoxel(m_CellSize);
             }
         }
+
+        public Vector3 CalculateVoxelMeshPos(LevelMesh mesh)
+        {
+            return mesh.CalculateVoxelMeshPos(mesh.m_Position, m_CellSize);
+        }
+
 
     }
 }
