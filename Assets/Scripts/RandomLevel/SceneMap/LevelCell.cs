@@ -12,8 +12,6 @@ namespace DragonSlay.RandomLevel
 
         Vector2 m_Center;
 
-        public bool m_IsShow = false;
-
         public LevelCell(Vector2 center,Vector3 right,Vector3 up,int size)
         {
             m_Center = center;
@@ -30,8 +28,8 @@ namespace DragonSlay.RandomLevel
             return rectPanel.ConvertMesh();
         }
 
-        int subMeshCenterIndex = 0;
-        int subMeshVerticesCount = 0;
+        public int subMeshCenterIndex = 0;
+        public int subMeshVerticesCount = 0;
 
         public override void FillMesh(List<Vector3> vertexList, List<int> triangleList,Vector3 startPos)
         {
@@ -63,6 +61,24 @@ namespace DragonSlay.RandomLevel
             {
                 colorList.Add(borderColor);
             }
+        }
+
+        public List<LevelMesh> InSideLevelMesh()
+        {
+            List<LevelMesh> levelMeshList = new List<LevelMesh>();
+            foreach(var parent in m_ParentSet)
+            {
+                if(parent is LevelMesh2D parent2D)
+                {
+                    var panelPos = parent2D.CalculateVoxelMeshPos2D(m_Size);
+                    if(parent2D.IsPointInside(m_Center - panelPos))
+                    {
+                        levelMeshList.Add(parent);
+                    }
+                }
+            }
+
+            return levelMeshList;
         }
 
         Color GetVertexColor(VertexColorType colorType)

@@ -247,22 +247,142 @@ namespace DragonSlay.RandomLevel
 
         }
 
+        Dictionary<Vector2, LevelCell> m_LevelCellDic = new Dictionary<Vector2, LevelCell>();
+        Vector2 m_StartPoint;
+        Vector3 m_Right = new Vector3(1, 0, 0);
+        Vector3 m_Up = new Vector3(0, 0, 1);
+
         public void GenerateVoxel()
         {
-            for(int i =0;i< m_RoomPanelList.Count;i++)
+
+            int voxelSize = m_CellSize;
+            m_LevelCellDic.Clear();
+            List<AABoundingBox2D> aabb2DList = new List<AABoundingBox2D>();
+            List<Vector2> voxelCenterList = new List<Vector2>();
+            HashSet<Vector2> voxelCenterSet = new HashSet<Vector2>();
+            for (int i =0;i< m_RoomPanelList.Count;i++)
             {
-                m_RoomPanelList[i].GenerateVoxel(m_CellSize);
+                Vector2 pos = m_RoomPanelList[i].CalculateVoxelMeshPos2D(voxelSize);
+                var aabb2D = m_RoomPanelList[i].GetAABB2D(m_CellSize) + pos;
+                int minX = (int)aabb2D.m_Min.x;
+                int minY = (int)aabb2D.m_Min.y;
+                int maxX = (int)aabb2D.m_Max.x;
+                int maxY = (int)aabb2D.m_Max.y;
+
+                for (int y = minY; y < maxY + 1; y += voxelSize)
+                {
+                    for (int x = minX; x < maxX + 1; x += voxelSize)
+                    {
+                        LevelCell cell = null;
+                        Vector2 cellCenter = new Vector2(x, y);
+                        if (!m_LevelCellDic.TryGetValue(cellCenter,out cell))
+                        {
+                            cell = new LevelCell(cellCenter, m_Right, m_Up, voxelSize);
+                            m_LevelCellDic.Add(cellCenter, cell);
+                        }
+                        cell.m_ParentSet.Add(m_RoomPanelList[i]);
+                    }
+                }
+                aabb2DList.Add(m_RoomPanelList[i].GetAABB2D(voxelSize) + pos);
             }
 
             for (int i = 0; i < m_EdgeList.Count; i++)
             {
-                m_EdgeList[i].GenerateVoxel(m_CellSize);
+                Vector2 pos = m_EdgeList[i].CalculateVoxelMeshPos2D(voxelSize);
+                var aabb2Ds = m_EdgeList[i].GetAABB2Ds(voxelSize);
+                for(int j =0;j<aabb2Ds.Length;j++)
+                {
+                    var aabb2D = aabb2Ds[j] + pos;
+                    int minX = (int)aabb2D.m_Min.x;
+                    int minY = (int)aabb2D.m_Min.y;
+                    int maxX = (int)aabb2D.m_Max.x;
+                    int maxY = (int)aabb2D.m_Max.y;
+
+                    for (int y = minY; y < maxY + 1; y += voxelSize)
+                    {
+                        for (int x = minX; x < maxX + 1; x += voxelSize)
+                        {
+                            LevelCell cell = null;
+                            Vector2 cellCenter = new Vector2(x, y);
+                            if (!m_LevelCellDic.TryGetValue(cellCenter, out cell))
+                            {
+                                cell = new LevelCell(cellCenter, m_Right, m_Up, voxelSize);
+                                m_LevelCellDic.Add(cellCenter, cell);
+                            }
+                            cell.m_ParentSet.Add(m_EdgeList[i]);
+                        }
+                    }
+                    aabb2DList.Add(aabb2D);
+                }
             }
+
+            AABoundingBox2D aabbBig = new AABoundingBox2D(aabb2DList.ToArray());
+            aabbBig.m_Min.x = Mathf.FloorToInt(aabbBig.m_Min.x / voxelSize) * voxelSize;
+            aabbBig.m_Min.y = Mathf.FloorToInt(aabbBig.m_Min.y / voxelSize) * voxelSize;
+            aabbBig.m_Max.x = Mathf.CeilToInt(aabbBig.m_Max.x / voxelSize) * voxelSize ;
+            aabbBig.m_Max.y = Mathf.CeilToInt(aabbBig.m_Max.y / voxelSize) * voxelSize;
+
+            m_StartPoint = aabbBig.m_Min;
+            //for(int i =0;i< voxelCenterList.Count;i++)
+            //{
+            //    var center = voxelCenterList[i] - zeroPoint;
+            //    voxelCenterSet.Add(center);
+            //}
+
+        }
+
+        public Mesh GenerateGraphMesh(ref Vector3 startPos)
+        {
+            startPos = m_StartPoint.x * m_Right + m_StartPoint.y * m_Up;
+            List<Vector3> vertexList = new List<Vector3>();
+            List<int> triangleList = new List<int>();
+            foreach (var keyValue in m_LevelCellDic)
+            {
+                var cell = keyValue.Value;
+                cell.FillMesh(vertexList, triangleList, startPos);
+            }
+
+            Mesh mesh = new Mesh();
+            mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            mesh.vertices = vertexList.ToArray();
+            mesh.triangles = triangleList.ToArray();
+
+            return mesh;
+        }
+
+        public Color[] GenerateGraphColors()
+        {
+            Color[] graphColors = new Color[m_LevelCellDic.Count * 5];
+
+            foreach(var cell in m_LevelCellDic.Values)
+            {
+                var parentList = cell.InSideLevelMesh();
+                Color color = Color.black;
+                for(int i =0;i< parentList.Count;i++)
+                {
+                    if(parentList[i] is LevelPanel)
+                    {
+                        color += Color.red;
+                    }
+                    else if(parentList[i] is LevelEdge)
+                    {
+                        color += Color.green;
+                    }
+                }
+
+                for (int i = 0; i < 5; i++)
+                {
+                    int index = cell.subMeshCenterIndex + i;
+                    graphColors[index] = color;
+                }
+            }
+
+            return graphColors;
         }
 
         public Vector3 CalculateVoxelMeshPos(LevelMesh mesh)
         {
-            return mesh.CalculateVoxelMeshPos(mesh.m_Position, m_CellSize);
+            return mesh.CalculateVoxelMeshPos( m_CellSize);
         }
 
 

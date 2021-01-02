@@ -9,6 +9,8 @@ namespace DragonSlay.RandomLevel
         public Vector3 m_Position;
         public int m_Size = 1;
 
+        public HashSet<LevelMesh> m_ParentSet = new HashSet<LevelMesh>();
+
         public virtual Mesh ConvertMesh()
         {
             return null;

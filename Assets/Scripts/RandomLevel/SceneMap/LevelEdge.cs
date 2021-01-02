@@ -212,18 +212,15 @@ namespace DragonSlay.RandomLevel
         {
             int pointCount = m_Borders.Length / 2;
             HashSet<Vector2> voxelCenterSet = new HashSet<Vector2>();
+            AABoundingBox2D[] aabb2Ds = GetAABB2Ds(voxelSize);
             for (int i = 0; i < pointCount - 1; i++)
             {
-                Vector2 v0 = m_Borders[i];
-                Vector2 v1 = m_Borders[i + 1];
-                Vector2 v2 = m_Borders[m_Borders.Length - 1 - i];
-                Vector2 v3 = m_Borders[m_Borders.Length - 2 - i];
-                var aabb2D = new AABoundingBox2D(new Vector2[4] { v0, v1, v2, v3 });
+                var aabb2D = aabb2Ds[i];
 
-                int minX = (int)aabb2D.m_Min.x / voxelSize * voxelSize;
-                int minY = (int)aabb2D.m_Min.y / voxelSize * voxelSize;
-                int maxX = (int)aabb2D.m_Max.x / voxelSize * voxelSize + voxelSize;
-                int maxY = (int)aabb2D.m_Max.y / voxelSize * voxelSize + voxelSize;
+                int minX = (int)aabb2D.m_Min.x ;
+                int minY = (int)aabb2D.m_Min.y;
+                int maxX = (int)aabb2D.m_Max.x;
+                int maxY = (int)aabb2D.m_Max.y;
 
                 for (int j = minY; j < maxY + 1; j += voxelSize)
                 {
@@ -241,18 +238,65 @@ namespace DragonSlay.RandomLevel
                 {
                     m_StartVoxel = levelCell;
                 }
-                if (IsPointInside(center))
-                {
-                    levelCell.m_IsShow = true;
-                }
-                else
-                {
-                    levelCell.m_IsShow = false;
-                }
                 m_Voxels.Add(levelCell);
             }
         }
 
+        public virtual AABoundingBox2D[] GetAABB2Ds(int voxelSize)
+        {
+            int pointCount = m_Borders.Length / 2;
+            AABoundingBox2D[] aabb2Ds = new AABoundingBox2D[pointCount - 1];
+            for (int i = 0; i < pointCount - 1; i++)
+            {
+                Vector2 v0 = m_Borders[i] ;
+                Vector2 v1 = m_Borders[i + 1];
+                Vector2 v2 = m_Borders[m_Borders.Length - 1 - i];
+                Vector2 v3 = m_Borders[m_Borders.Length - 2 - i];
+                var aabb2D = new AABoundingBox2D(new Vector2[4] { v0, v1, v2, v3 });
+
+                aabb2D.m_Min.x = Mathf.FloorToInt(aabb2D.m_Min.x / voxelSize) * voxelSize;
+                aabb2D.m_Min.y = Mathf.FloorToInt(aabb2D.m_Min.y / voxelSize) * voxelSize;
+                aabb2D.m_Max.x = Mathf.CeilToInt(aabb2D.m_Max.x / voxelSize) * voxelSize;
+                aabb2D.m_Max.y = Mathf.CeilToInt(aabb2D.m_Max.y / voxelSize) * voxelSize;
+
+                aabb2Ds[i] = aabb2D;
+            }
+            return aabb2Ds;
+        }
+
+        public override bool IsPointInside(Vector2 point)
+        {
+            Vector2 p0, p1, v0, v1;
+            float cross = 1;
+            //线段非凸包，需要进行拆解
+            int pointCount = m_Borders.Length / 2;
+
+            for (int j = 0; j < pointCount - 1; j++)
+            {
+                Vector2[] vertices = new Vector2[4];
+                vertices[0] = m_Borders[j];
+                vertices[1] = m_Borders[j + 1];
+                vertices[2] = m_Borders[m_Borders.Length - 2 - j];
+                vertices[3] = m_Borders[m_Borders.Length - 1 - j];
+                cross = 1;
+
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    p0 = vertices[i];
+                    p1 = vertices[(i + 1) % vertices.Length];
+                    v0 = p1 - p0;
+                    v1 = point - p0;
+                    float temp = v0.x * v1.y - v1.x * v0.y;
+                    cross = temp * temp;
+                }
+
+                if(cross > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         //public override Vector3 CalculateVoxelMeshPos(Vector3 pos, int voxelSize)
         //{
         //    return pos;

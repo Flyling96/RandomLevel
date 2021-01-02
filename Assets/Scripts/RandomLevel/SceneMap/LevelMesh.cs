@@ -22,6 +22,27 @@ namespace DragonSlay.RandomLevel
                 else if (vertex.y < m_Min.y) m_Min.y = vertex.y;
             }
         }
+
+        public AABoundingBox2D(AABoundingBox2D[] aabbs)
+        {
+            m_Min = new Vector2(float.MaxValue, float.MaxValue);
+            m_Max = new Vector2(float.MinValue, float.MinValue);
+            for (int i = 0; i < aabbs.Length; i++)
+            {
+                var aabb = aabbs[i];
+                if (aabb.m_Max.x > m_Max.x) m_Max.x = aabb.m_Max.x;
+                else if (aabb.m_Min.x < m_Min.x) m_Min.x = aabb.m_Min.x;
+                if (aabb.m_Max.y > m_Max.y) m_Max.y = aabb.m_Max.y;
+                else if (aabb.m_Min.y < m_Min.y) m_Min.y = aabb.m_Min.y;
+            }
+        }
+
+        public static AABoundingBox2D operator+(AABoundingBox2D aabb2D,Vector2 offset)
+        {
+            aabb2D.m_Min += offset;
+            aabb2D.m_Max += offset;
+            return aabb2D;
+        }
     }
 
     public struct AABoundingBox
@@ -41,23 +62,23 @@ namespace DragonSlay.RandomLevel
         public virtual AABoundingBox2D GetAABB2D()
         {
             AABoundingBox2D aabb2D = new AABoundingBox2D(m_Borders);
-            //aabb2D.m_Min = new Vector2(float.MaxValue, float.MaxValue);
-            //aabb2D.m_Max = new Vector2(float.MinValue, float.MinValue);
-            //for (int i = 0; i < m_Borders.Length; i++)
-            //{
-            //    var vertex = m_Borders[i];
-            //    if (vertex.x > aabb2D.m_Max.x) aabb2D.m_Max.x = vertex.x;
-            //    else if (vertex.x < aabb2D.m_Min.x) aabb2D.m_Min.x = vertex.x;
-            //    if (vertex.y > aabb2D.m_Max.y) aabb2D.m_Max.y = vertex.y;
-            //    else if (vertex.y < aabb2D.m_Min.y) aabb2D.m_Min.y = vertex.y;
-            //}
+            return aabb2D;
+        }
+
+        public AABoundingBox2D GetAABB2D(int voxelSize)
+        {
+            AABoundingBox2D aabb2D = GetAABB2D();
+            aabb2D.m_Min.x = Mathf.FloorToInt(aabb2D.m_Min.x / voxelSize) * voxelSize;
+            aabb2D.m_Min.y = Mathf.FloorToInt(aabb2D.m_Min.y / voxelSize) * voxelSize;
+            aabb2D.m_Max.x = Mathf.CeilToInt(aabb2D.m_Max.x / voxelSize) * voxelSize;
+            aabb2D.m_Max.y = Mathf.CeilToInt(aabb2D.m_Max.y / voxelSize) * voxelSize;
             return aabb2D;
         }
 
         public override void GenerateVoxel(int voxelSize)
         {
             m_Voxels.Clear();
-            AABoundingBox2D aabb2D = GetAABB2D();
+            AABoundingBox2D aabb2D = GetAABB2D(voxelSize);
             int minX = (int)aabb2D.m_Min.x / voxelSize * voxelSize;
             int minY = (int)aabb2D.m_Min.y / voxelSize * voxelSize;
             int maxX = (int)aabb2D.m_Max.x / voxelSize * voxelSize + voxelSize;
@@ -73,26 +94,26 @@ namespace DragonSlay.RandomLevel
                     {
                         m_StartVoxel = levelCell;
                     }
-                    if (IsPointInside(center))
-                    {
-                        levelCell.m_IsShow = true;
-                    }
-                    else
-                    {
-                        levelCell.m_IsShow = false;
-                    }
                     m_Voxels.Add(levelCell);
                 }
             }
         }
 
-        public override Vector3 CalculateVoxelMeshPos(Vector3 pos, int voxelSize)
+        public override Vector3 CalculateVoxelMeshPos(int voxelSize)
         {
-            Vector2 panelPos = new Vector2(Vector3.Dot(pos, m_Right), Vector3.Dot(pos, m_Up));
+            Vector2 panelPos = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up));
             panelPos.x = (int)panelPos.x / voxelSize * voxelSize;
             panelPos.y = (int)panelPos.y / voxelSize * voxelSize;
             Vector3 result = panelPos.x * m_Right + panelPos.y * m_Up;
             return result;
+        }
+
+        public virtual Vector2 CalculateVoxelMeshPos2D(int voxelSize)
+        {
+            Vector2 panelPos = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up));
+            panelPos.x = (int)panelPos.x / voxelSize * voxelSize;
+            panelPos.y = (int)panelPos.y / voxelSize * voxelSize;
+            return panelPos;
         }
 
         public virtual bool IsPointInside(Vector2 point)
@@ -183,7 +204,7 @@ namespace DragonSlay.RandomLevel
             return mesh;
         }
 
-        public virtual Vector3 CalculateVoxelMeshPos(Vector3 pos, int voxelSize) { return Vector3.zero; }
+        public virtual Vector3 CalculateVoxelMeshPos(int voxelSize) { return Vector3.zero; }
 
         public abstract void GenerateVoxel(int voxelSize);
 
