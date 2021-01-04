@@ -33,9 +33,11 @@ namespace DragonSlay.RandomLevel
 
         public override void FillMesh(List<Vector3> vertexList, List<int> triangleList,Vector3 startPos)
         {
-            Mesh subMesh = ConvertMesh();
-            var subVertices = subMesh.vertices;
-            var subTriangles = subMesh.triangles;
+            //Mesh subMesh = ConvertMesh();
+            RectPanel rectPanel = new RectPanel(m_Size, m_Size, Vector2.zero, m_Position);
+            rectPanel.GenerateMesh();
+            var subVertices = rectPanel.m_Vertices;
+            var subTriangles = rectPanel.m_Triangles;
             subMeshVerticesCount = subVertices.Length;
             subMeshCenterIndex = vertexList.Count;
             Vector3 posOffset = m_Position - startPos;

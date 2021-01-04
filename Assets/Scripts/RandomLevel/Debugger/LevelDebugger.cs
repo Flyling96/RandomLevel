@@ -86,6 +86,7 @@ namespace DragonSlay.RandomLevel
             return go;
         }
 
+
         public void FilterMinorPanel()
         {
             List<LevelMesh> removeKeys = new List<LevelMesh>();
@@ -139,63 +140,30 @@ namespace DragonSlay.RandomLevel
             }
         }
 
+        Mesh m_VoxelMesh = null;
+
         public void GenerateVoxel()
         {
+            float time = Time.realtimeSinceStartup;
             Vector3 pos = Vector3.zero;
             m_LevelGraph.GenerateVoxel();
-            Mesh graphMesh =  m_LevelGraph.GenerateGraphMesh(ref pos);
+            Debug.Log(Time.realtimeSinceStartup - time);
+            time = Time.realtimeSinceStartup;
+            m_VoxelMesh =  m_LevelGraph.GenerateGraphMesh(ref pos);
+            Debug.Log(Time.realtimeSinceStartup - time);
+            time = Time.realtimeSinceStartup;
             var colors = m_LevelGraph.GenerateGraphColors();
-            graphMesh.colors = colors;
+            m_VoxelMesh.colors = colors;
 
-            var graph = CreateMeshGameObject(graphMesh, pos, "Graph", m_VoxelMeshMaterial);
+            var graph = CreateMeshGameObject(m_VoxelMesh, pos, "Graph", m_VoxelMeshMaterial);
             graph.transform.position += Vector3.up * 0.2f;
-            //foreach(var keyValue in m_MeshGoDic)
-            //{
-            //    var meshData = keyValue.Key;
-            //    var go = keyValue.Value;
-            //    if(go == null)
-            //    {
-            //        continue;
-            //    }
 
-            //    for (int i = go.transform.childCount - 1; i > -1; i--)
-            //    {
-            //        var child = go.transform.GetChild(i);
-            //        if (Application.isPlaying)
-            //        {
-            //            Destroy(child.gameObject);
-            //        }
-            //        else
-            //        {
-            //            DestroyImmediate(child.gameObject);
-            //        }
-            //    }
+        }
 
-            //    Mesh voxelMesh = meshData.ConvertVoxelMesh();
-            //    Vector3 pos = m_LevelGraph.CalculateVoxelMeshPos(meshData);
-            //    var cell = CreateMeshGameObject(voxelMesh, pos, "Cell", Color.white);
-            //    cell.transform.parent = go.transform;
-            //    cell.transform.position += Vector3.up * 0.11f;
-
-            //    //for (int i =0;i< meshData.m_Voxels.Count;i++)
-            //    //{
-            //    //    var voxel = meshData.m_Voxels[i];
-            //    //    var pos = voxel.m_Position;
-            //    //    Mesh mesh = voxel.ConvertMesh();
-            //    //    Color color = Color.white;
-            //    //    if(voxel is LevelCell levelCell)
-            //    //    {
-            //    //        if(!levelCell.m_IsShow)
-            //    //        {
-            //    //            color = Color.black;
-            //    //        }
-            //    //    }
-
-            //    //    var cell =  CreateMeshGameObject(mesh, pos, "Cell", color);
-            //    //    cell.transform.parent = go.transform;
-            //    //}
-            //}
-
+        public void ChangeColor()
+        {
+            var colors = m_LevelGraph.GenerateNewColor();
+            m_VoxelMesh.colors = colors;
         }
 
         public void CollsionSimulate(int simulateCount)

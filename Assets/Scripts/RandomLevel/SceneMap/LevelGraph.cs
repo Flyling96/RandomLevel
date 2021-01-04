@@ -61,11 +61,11 @@ namespace DragonSlay.RandomLevel
                     Vector2 rect;
                     if (main_count == m_NeedMainRoom)
                     {
-                        rect = new Vector2(Random.Range(50, Mathf.Sqrt(m_RoomFilter)), Random.Range(50, Mathf.Sqrt(m_RoomFilter)));
+                        rect = new Vector2(Random.Range(30, Mathf.Sqrt(m_RoomFilter)), Random.Range(30, Mathf.Sqrt(m_RoomFilter)));
                     }
                     else
                     {
-                        rect = new Vector2(Random.Range(50, m_PointRandomRange), Random.Range(50, m_PointRandomRange));
+                        rect = new Vector2(Random.Range(30, m_PointRandomRange), Random.Range(30, m_PointRandomRange));
                     }
                     if (rect.x * rect.y > m_RoomFilter)
                     {
@@ -254,7 +254,6 @@ namespace DragonSlay.RandomLevel
 
         public void GenerateVoxel()
         {
-
             int voxelSize = m_CellSize;
             m_LevelCellDic.Clear();
             List<AABoundingBox2D> aabb2DList = new List<AABoundingBox2D>();
@@ -262,8 +261,12 @@ namespace DragonSlay.RandomLevel
             HashSet<Vector2> voxelCenterSet = new HashSet<Vector2>();
             for (int i =0;i< m_RoomPanelList.Count;i++)
             {
-                Vector2 pos = m_RoomPanelList[i].CalculateVoxelMeshPos2D(voxelSize);
-                var aabb2D = m_RoomPanelList[i].GetAABB2D(m_CellSize) + pos;
+#if UNITY_EDITOR
+                UnityEditor.EditorUtility.DisplayProgressBar("Voxel", string.Format("VoxelRoom : {0}/{1}", i, m_RoomPanelList.Count), (float)i / m_RoomPanelList.Count);
+#endif
+                var room = m_RoomPanelList[i];
+                Vector2 pos = room.CalculateVoxelMeshPos2D(voxelSize);
+                var aabb2D = room.GetAABB2D(m_CellSize) + pos;
                 int minX = (int)aabb2D.m_Min.x;
                 int minY = (int)aabb2D.m_Min.y;
                 int maxX = (int)aabb2D.m_Max.x;
@@ -275,9 +278,10 @@ namespace DragonSlay.RandomLevel
                     {
                         LevelCell cell = null;
                         Vector2 cellCenter = new Vector2(x, y);
+                        //XXX:Dictionary 查询消耗较大，可以考虑用数组替代
                         if (!m_LevelCellDic.TryGetValue(cellCenter,out cell))
                         {
-                            cell = new LevelCell(cellCenter, m_Right, m_Up, voxelSize);
+                            cell = new LevelCell(cellCenter, room.m_Right, room.m_Up, voxelSize);
                             m_LevelCellDic.Add(cellCenter, cell);
                         }
                         cell.m_ParentSet.Add(m_RoomPanelList[i]);
@@ -288,8 +292,12 @@ namespace DragonSlay.RandomLevel
 
             for (int i = 0; i < m_EdgeList.Count; i++)
             {
-                Vector2 pos = m_EdgeList[i].CalculateVoxelMeshPos2D(voxelSize);
-                var aabb2Ds = m_EdgeList[i].GetAABB2Ds(voxelSize);
+#if UNITY_EDITOR
+                UnityEditor.EditorUtility.DisplayProgressBar("Voxel", string.Format("VoxelEdge : {0}/{1}", i, m_EdgeList.Count), (float)i / m_EdgeList.Count);
+#endif
+                var edge = m_EdgeList[i];
+                Vector2 pos = edge.CalculateVoxelMeshPos2D(voxelSize);
+                var aabb2Ds = edge.GetAABB2Ds(voxelSize);
                 for(int j =0;j<aabb2Ds.Length;j++)
                 {
                     var aabb2D = aabb2Ds[j] + pos;
@@ -306,7 +314,7 @@ namespace DragonSlay.RandomLevel
                             Vector2 cellCenter = new Vector2(x, y);
                             if (!m_LevelCellDic.TryGetValue(cellCenter, out cell))
                             {
-                                cell = new LevelCell(cellCenter, m_Right, m_Up, voxelSize);
+                                cell = new LevelCell(cellCenter, edge.m_Right, edge.m_Up, voxelSize);
                                 m_LevelCellDic.Add(cellCenter, cell);
                             }
                             cell.m_ParentSet.Add(m_EdgeList[i]);
@@ -316,6 +324,10 @@ namespace DragonSlay.RandomLevel
                 }
             }
 
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.ClearProgressBar();
+#endif
+
             AABoundingBox2D aabbBig = new AABoundingBox2D(aabb2DList.ToArray());
             aabbBig.m_Min.x = Mathf.FloorToInt(aabbBig.m_Min.x / voxelSize) * voxelSize;
             aabbBig.m_Min.y = Mathf.FloorToInt(aabbBig.m_Min.y / voxelSize) * voxelSize;
@@ -323,11 +335,6 @@ namespace DragonSlay.RandomLevel
             aabbBig.m_Max.y = Mathf.CeilToInt(aabbBig.m_Max.y / voxelSize) * voxelSize;
 
             m_StartPoint = aabbBig.m_Min;
-            //for(int i =0;i< voxelCenterList.Count;i++)
-            //{
-            //    var center = voxelCenterList[i] - zeroPoint;
-            //    voxelCenterSet.Add(center);
-            //}
 
         }
 
@@ -342,10 +349,13 @@ namespace DragonSlay.RandomLevel
                 cell.FillMesh(vertexList, triangleList, startPos);
             }
 
+            float time = Time.realtimeSinceStartup;
             Mesh mesh = new Mesh();
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             mesh.vertices = vertexList.ToArray();
             mesh.triangles = triangleList.ToArray();
+            Debug.Log(Time.realtimeSinceStartup - time);
+            time = Time.realtimeSinceStartup;
 
             return mesh;
         }
@@ -377,6 +387,16 @@ namespace DragonSlay.RandomLevel
                 }
             }
 
+            return graphColors;
+        }
+
+        public Color[] GenerateNewColor()
+        {
+            Color[] graphColors = new Color[m_LevelCellDic.Count * 5];
+            for(int i =0;i< graphColors.Length;i++)
+            {
+                graphColors[i] = Color.blue;
+            }
             return graphColors;
         }
 

@@ -40,6 +40,10 @@ namespace DragonSlay.RandomLevel
             {
                 debugger.EdgeMeshTest();
             }
+            if (GUILayout.Button("ChangeNewColor"))
+            {
+                debugger.ChangeColor();
+            }
         }
     }
 }

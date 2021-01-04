@@ -17,9 +17,9 @@ namespace DragonSlay.RandomLevel
             {
                 var vertex = vertices[i];
                 if (vertex.x > m_Max.x) m_Max.x = vertex.x;
-                else if (vertex.x < m_Min.x) m_Min.x = vertex.x;
+                if (vertex.x < m_Min.x) m_Min.x = vertex.x;
                 if (vertex.y > m_Max.y) m_Max.y = vertex.y;
-                else if (vertex.y < m_Min.y) m_Min.y = vertex.y;
+                if (vertex.y < m_Min.y) m_Min.y = vertex.y;
             }
         }
 
@@ -31,9 +31,9 @@ namespace DragonSlay.RandomLevel
             {
                 var aabb = aabbs[i];
                 if (aabb.m_Max.x > m_Max.x) m_Max.x = aabb.m_Max.x;
-                else if (aabb.m_Min.x < m_Min.x) m_Min.x = aabb.m_Min.x;
+                if (aabb.m_Min.x < m_Min.x) m_Min.x = aabb.m_Min.x;
                 if (aabb.m_Max.y > m_Max.y) m_Max.y = aabb.m_Max.y;
-                else if (aabb.m_Min.y < m_Min.y) m_Min.y = aabb.m_Min.y;
+                if (aabb.m_Min.y < m_Min.y) m_Min.y = aabb.m_Min.y;
             }
         }
 
@@ -53,9 +53,9 @@ namespace DragonSlay.RandomLevel
 
     public abstract class LevelMesh2D : LevelMesh
     {
-        protected Vector3 m_Right = new Vector3(1, 0, 0);
+        public Vector3 m_Right = new Vector3(1, 0, 0);
 
-        protected Vector3 m_Up = new Vector3(0, 0, 1);
+        public Vector3 m_Up = new Vector3(0, 0, 1);
 
         public Vector2[] m_Borders;
 
@@ -129,7 +129,7 @@ namespace DragonSlay.RandomLevel
                 float temp = v0.x * v1.y - v1.x * v0.y;
                 if (i != 0)
                 {
-                    if (temp * cross < 0)
+                    if (temp * cross <= 0)
                     {
                         return false;
                     }
