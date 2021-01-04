@@ -279,6 +279,7 @@ namespace DragonSlay.RandomLevel
                 vertices[2] = m_Borders[m_Borders.Length - 2 - j];
                 vertices[3] = m_Borders[m_Borders.Length - 1 - j];
                 cross = 1;
+                bool isOut = false;
 
                 for (int i = 0; i < vertices.Length; i++)
                 {
@@ -287,10 +288,18 @@ namespace DragonSlay.RandomLevel
                     v0 = p1 - p0;
                     v1 = point - p0;
                     float temp = v0.x * v1.y - v1.x * v0.y;
-                    cross = temp * temp;
+                    if (i != 0)
+                    {
+                        if (temp * cross <= 0)
+                        {
+                            isOut = true;
+                            break;
+                        }
+                    }
+                    cross = temp;
                 }
 
-                if(cross > 0)
+                if(!isOut)
                 {
                     return true;
                 }
