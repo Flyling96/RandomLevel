@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DragonSlay.RandomLevel
+namespace DragonSlay.RandomLevel.Scene
 {
     public enum LevelEdgeType
     {
@@ -18,15 +18,27 @@ namespace DragonSlay.RandomLevel
 
         float m_EdgeWidth;
 
+        UEdge2D m_Data;
+
+        public UEdge2D Data
+        {
+            get
+            {
+                return m_Data;
+            }
+        }
+
         public LevelEdge(UEdge2D data,float width)
         {
+            m_Data = data;
             m_Position = data.Points[0].Point.x * m_Right + data.Points[0].Point.y * m_Up;
             m_Position.y = 0.1f;
             m_Start = Vector2.zero;
             m_End = data.Points[1].Point - data.Points[0].Point;
+            //m_MidPoints = new Vector2[0];
             float RandomX = Random.Range(0, m_End.x);
             float RandomY = Random.Range(0, m_End.y);
-            if(RandomY < RandomX)
+            if (RandomY < RandomX)
             {
                 m_MidPoints = new Vector2[2] { new Vector2(m_Start.x, RandomY), new Vector2(m_End.x, RandomY) };
             }

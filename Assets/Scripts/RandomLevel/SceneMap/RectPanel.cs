@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace DragonSlay.RandomLevel
+namespace DragonSlay.RandomLevel.Scene
 {
     public class RectPanel : LevelPanel
     {

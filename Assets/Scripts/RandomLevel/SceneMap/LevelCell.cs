@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DragonSlay.RandomLevel
+namespace DragonSlay.RandomLevel.Scene
 {
     public class LevelCell : LevelVoxel
     {

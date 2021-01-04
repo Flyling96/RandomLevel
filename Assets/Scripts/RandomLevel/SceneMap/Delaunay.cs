@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DragonSlay.RandomLevel
+namespace DragonSlay.RandomLevel.Scene
 {
     public class UVertex2D
     {
@@ -69,7 +69,7 @@ namespace DragonSlay.RandomLevel
             return _other.ContainId(Points[0].Id) && _other.ContainId(Points[1].Id);
         }
 
-        bool ContainId(int _vertexid)
+        public bool ContainId(int _vertexid)
         {
             return Points[0].Id == _vertexid || Points[1].Id == _vertexid;
         }

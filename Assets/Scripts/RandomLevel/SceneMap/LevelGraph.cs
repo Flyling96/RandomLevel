@@ -4,7 +4,7 @@ using UnityEngine;
 using System;
 using Random = UnityEngine.Random;
 
-namespace DragonSlay.RandomLevel
+namespace DragonSlay.RandomLevel.Scene
 {
     [Serializable]
     public class LevelGraph
@@ -20,14 +20,14 @@ namespace DragonSlay.RandomLevel
         [SerializeField, Header("初始点数量")]
         private int m_InitCount = 30;
 
-        [SerializeField, Header("房间数量")]
-        private int m_NeedMainRoom = 5;
+        [SerializeField, Header("保留几何体数量")]
+        private int m_NeedMainPanel = 5;
 
-        [SerializeField, Header("房间筛选，以面积判定")]
-        private int m_RoomFilter = 300;
+        [SerializeField, Header("几何体筛选，以面积判定")]
+        private int m_RoomFilter = 2500;
 
-        [SerializeField, Range(50, 200), Header("随机宽高范围")]
-        private int m_PointRandomRange = 120;
+        [SerializeField, Range(20, 200), Header("随机宽高范围")]
+        private int m_PointRandomRange = 60;
 
         [SerializeField, Range(0, 1f), Header("融合三角剖分百分比")]
         private float m_MixPersents = 0.15f;
@@ -37,14 +37,14 @@ namespace DragonSlay.RandomLevel
 
         public List<LevelMesh> m_LevelMeshList = new List<LevelMesh>();
 
-        public List<LevelPanel> m_RoomPanelList = new List<LevelPanel>();
+        public List<LevelPanel> m_PanelList = new List<LevelPanel>();
 
         public List<LevelEdge> m_EdgeList = new List<LevelEdge>();
 
         public void Clear()
         {
             m_LevelMeshList.Clear();
-            m_RoomPanelList.Clear();
+            m_PanelList.Clear();
         }
 
         public void GenerateMesh()
@@ -59,13 +59,13 @@ namespace DragonSlay.RandomLevel
                 for (int i = 0; i < m_InitCount; i++)
                 {
                     Vector2 rect;
-                    if (main_count == m_NeedMainRoom)
+                    if (main_count == m_NeedMainPanel)
                     {
-                        rect = new Vector2(Random.Range(30, Mathf.Sqrt(m_RoomFilter)), Random.Range(30, Mathf.Sqrt(m_RoomFilter)));
+                        rect = new Vector2(Random.Range(20, Mathf.Sqrt(m_RoomFilter)), Random.Range(20, Mathf.Sqrt(m_RoomFilter)));
                     }
                     else
                     {
-                        rect = new Vector2(Random.Range(30, m_PointRandomRange), Random.Range(30, m_PointRandomRange));
+                        rect = new Vector2(Random.Range(20, m_PointRandomRange), Random.Range(20, m_PointRandomRange));
                     }
                     if (rect.x * rect.y > m_RoomFilter)
                     {
@@ -73,7 +73,7 @@ namespace DragonSlay.RandomLevel
                     }
                     allRect[i] = rect;
                 }
-                if (main_count >= m_NeedMainRoom)
+                if (main_count >= m_NeedMainPanel)
                 {
                     break;
                 }
@@ -88,7 +88,7 @@ namespace DragonSlay.RandomLevel
                 m_LevelMeshList.Add(rectPanel);
                 if(rectPanel.m_Acreage > m_RoomFilter)
                 {
-                    m_RoomPanelList.Add(rectPanel);
+                    m_PanelList.Add(rectPanel);
                 }
             }
 
@@ -182,9 +182,9 @@ namespace DragonSlay.RandomLevel
             m_EdgeList.Clear();
             //三角剖分
             List<UVertex2D> vertexs = new List<UVertex2D>();
-            for (int i = 0; i < m_RoomPanelList.Count; i++)
+            for (int i = 0; i < m_PanelList.Count; i++)
             {
-                vertexs.Add(new UVertex2D(i, m_RoomPanelList[i].m_PanelPosition + m_RoomPanelList[i].m_Center));
+                vertexs.Add(new UVertex2D(i, m_PanelList[i].m_PanelPosition + m_PanelList[i].m_Center));
             }
             var delaunayResult = UDelaunayBest.GetTriangles2D(vertexs);
 
@@ -259,12 +259,12 @@ namespace DragonSlay.RandomLevel
             List<AABoundingBox2D> aabb2DList = new List<AABoundingBox2D>();
             List<Vector2> voxelCenterList = new List<Vector2>();
             HashSet<Vector2> voxelCenterSet = new HashSet<Vector2>();
-            for (int i =0;i< m_RoomPanelList.Count;i++)
+            for (int i =0;i< m_PanelList.Count;i++)
             {
 #if UNITY_EDITOR
-                UnityEditor.EditorUtility.DisplayProgressBar("Voxel", string.Format("VoxelRoom : {0}/{1}", i, m_RoomPanelList.Count), (float)i / m_RoomPanelList.Count);
+                UnityEditor.EditorUtility.DisplayProgressBar("Voxel", string.Format("VoxelRoom : {0}/{1}", i, m_PanelList.Count), (float)i / m_PanelList.Count);
 #endif
-                var room = m_RoomPanelList[i];
+                var room = m_PanelList[i];
                 Vector2 pos = room.CalculateVoxelMeshPos2D(voxelSize);
                 var aabb2D = room.GetAABB2D(m_CellSize) + pos;
                 int minX = (int)aabb2D.m_Min.x;
@@ -284,10 +284,10 @@ namespace DragonSlay.RandomLevel
                             cell = new LevelCell(cellCenter, room.m_Right, room.m_Up, voxelSize);
                             m_LevelCellDic.Add(cellCenter, cell);
                         }
-                        cell.m_ParentSet.Add(m_RoomPanelList[i]);
+                        cell.m_ParentSet.Add(m_PanelList[i]);
                     }
                 }
-                aabb2DList.Add(m_RoomPanelList[i].GetAABB2D(voxelSize) + pos);
+                aabb2DList.Add(m_PanelList[i].GetAABB2D(voxelSize) + pos);
             }
 
             for (int i = 0; i < m_EdgeList.Count; i++)

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-namespace DragonSlay.RandomLevel
+namespace DragonSlay.RandomLevel.Scene
 {
     [CustomEditor(typeof(LevelDebugger))]
     public class LevelDebuggerEditor : Editor

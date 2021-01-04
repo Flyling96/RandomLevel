@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DragonSlay.RandomLevel
+namespace DragonSlay.RandomLevel.Scene
 {
     [ExecuteInEditMode]
     public class LevelDebugger : MonoBehaviour
@@ -60,7 +60,7 @@ namespace DragonSlay.RandomLevel
                 var pos = positions[i];
                 var meshData = m_LevelGraph.m_LevelMeshList[i];
                 string goName;
-                if (meshData is LevelPanel levelPanel && m_LevelGraph.m_RoomPanelList.Contains(levelPanel))
+                if (meshData is LevelPanel levelPanel && m_LevelGraph.m_PanelList.Contains(levelPanel))
                 {
                     goName = "Main Panel";
                 }
@@ -95,7 +95,7 @@ namespace DragonSlay.RandomLevel
                 var meshData = keyValue.Key;
                 var go = keyValue.Value;
 
-                if(!(meshData is LevelPanel levelPanel && m_LevelGraph.m_RoomPanelList.Contains(levelPanel)))
+                if(!(meshData is LevelPanel levelPanel && m_LevelGraph.m_PanelList.Contains(levelPanel)))
                 {
                     removeKeys.Add(meshData);
                     if (Application.isPlaying)
