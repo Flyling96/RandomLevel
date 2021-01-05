@@ -36,7 +36,9 @@ namespace DragonSlay.RandomLevel.Scene
         /// <summary>
         /// 一条边的两个顶点
         /// </summary>
-        public UVertex2D[] Points { get; private set; }
+        public UVertex2D Point0 { get; private set; }
+
+        public UVertex2D Point1 { get; private set; }
 
         /// <summary>
         /// 线段的长度
@@ -51,10 +53,9 @@ namespace DragonSlay.RandomLevel.Scene
 
         public UEdge2D(UVertex2D _from, UVertex2D _to)
         {
-            Points = new UVertex2D[2];
-            Points[0] = _from;
-            Points[1] = _to;
-            Distance = Vector2.Distance(Points[0].Point, Points[1].Point);
+            Point0 = _from;
+            Point1 = _to;
+            Distance = Vector2.Distance(Point0.Point, Point1.Point);
             FromName = _from.Id + "_" + _to.Id;
             ToName = _to.Id + "_" + _from.Id;
         }
@@ -66,12 +67,12 @@ namespace DragonSlay.RandomLevel.Scene
         /// <returns></returns>
         public bool IsEquals(UEdge2D _other)
         {
-            return _other.ContainId(Points[0].Id) && _other.ContainId(Points[1].Id);
+            return _other.ContainId(Point0.Id) && _other.ContainId(Point1.Id);
         }
 
         public bool ContainId(int _vertexid)
         {
-            return Points[0].Id == _vertexid || Points[1].Id == _vertexid;
+            return Point0.Id == _vertexid || Point1.Id == _vertexid;
         }
     }
 
@@ -298,7 +299,7 @@ namespace DragonSlay.RandomLevel.Scene
             // 创建新的三角形
             foreach (var v in edges)
             {
-                _doing.Add(new UTriangle2D(v.Points[0], v.Points[1], _vertex));
+                _doing.Add(new UTriangle2D(v.Point0, v.Point1, _vertex));
             }
         }
 

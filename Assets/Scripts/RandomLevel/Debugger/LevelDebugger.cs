@@ -1,13 +1,17 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DragonSlay.RandomLevel.Scene;
+using DragonSlay.RandomLevel.Gameplay;
 
-namespace DragonSlay.RandomLevel.Scene
+namespace DragonSlay.RandomLevel
 {
     [ExecuteInEditMode]
     public class LevelDebugger : MonoBehaviour
     {
-        public LevelGraph m_LevelGraph;
+        public LevelGraph m_SceneLevel;
+
+        public Level m_GameplayLevel;
 
         public Material m_MeshMaterial;
 
@@ -18,7 +22,8 @@ namespace DragonSlay.RandomLevel.Scene
        
         public void Awake()
         {
-            m_LevelGraph = new LevelGraph();
+            m_SceneLevel = new LevelGraph();
+            m_GameplayLevel = new Level();
         }
 
         public void Clear()
@@ -36,31 +41,32 @@ namespace DragonSlay.RandomLevel.Scene
                 }
             }
             m_MeshGoDic.Clear();
+            m_GameplayLevel?.Clear();
         }
 
         public void GenerateAllPanel()
         {
             Clear();
-            m_LevelGraph.GenerateMesh();
-            Mesh[] meshes = new Mesh[m_LevelGraph.m_LevelMeshList.Count];
-            for (int i = 0; i < m_LevelGraph.m_LevelMeshList.Count; i++)
+            m_SceneLevel.GenerateMesh();
+            Mesh[] meshes = new Mesh[m_SceneLevel.m_LevelMeshList.Count];
+            for (int i = 0; i < m_SceneLevel.m_LevelMeshList.Count; i++)
             {
-                meshes[i] = m_LevelGraph.m_LevelMeshList[i].ConvertMesh();
+                meshes[i] = m_SceneLevel.m_LevelMeshList[i].ConvertMesh();
             }
 
-            Vector3[] positions = new Vector3[m_LevelGraph.m_LevelMeshList.Count];
-            for (int i = 0; i < m_LevelGraph.m_LevelMeshList.Count; i++)
+            Vector3[] positions = new Vector3[m_SceneLevel.m_LevelMeshList.Count];
+            for (int i = 0; i < m_SceneLevel.m_LevelMeshList.Count; i++)
             {
-                positions[i] = m_LevelGraph.m_LevelMeshList[i].m_Position;
+                positions[i] = m_SceneLevel.m_LevelMeshList[i].m_Position;
             }
 
-            for (int i =0;i< m_LevelGraph.m_LevelMeshList.Count;i++)
+            for (int i =0;i< m_SceneLevel.m_LevelMeshList.Count;i++)
             {
                 var mesh = meshes[i];
                 var pos = positions[i];
-                var meshData = m_LevelGraph.m_LevelMeshList[i];
+                var meshData = m_SceneLevel.m_LevelMeshList[i];
                 string goName;
-                if (meshData is LevelPanel levelPanel && m_LevelGraph.m_PanelList.Contains(levelPanel))
+                if (meshData is LevelPanel levelPanel && m_SceneLevel.m_PanelList.Contains(levelPanel))
                 {
                     goName = "Main Panel";
                 }
@@ -95,7 +101,7 @@ namespace DragonSlay.RandomLevel.Scene
                 var meshData = keyValue.Key;
                 var go = keyValue.Value;
 
-                if(!(meshData is LevelPanel levelPanel && m_LevelGraph.m_PanelList.Contains(levelPanel)))
+                if(!(meshData is LevelPanel levelPanel && m_SceneLevel.m_PanelList.Contains(levelPanel)))
                 {
                     removeKeys.Add(meshData);
                     if (Application.isPlaying)
@@ -117,22 +123,22 @@ namespace DragonSlay.RandomLevel.Scene
 
         public void GenerateEdge()
         {
-            m_LevelGraph.GenerateEdge();
-            Mesh[] meshes = new Mesh[m_LevelGraph.m_EdgeList.Count];
-            for (int i = 0; i < m_LevelGraph.m_EdgeList.Count; i++)
+            m_SceneLevel.GenerateEdge();
+            Mesh[] meshes = new Mesh[m_SceneLevel.m_EdgeList.Count];
+            for (int i = 0; i < m_SceneLevel.m_EdgeList.Count; i++)
             {
-                meshes[i] = m_LevelGraph.m_EdgeList[i].ConvertMesh();
+                meshes[i] = m_SceneLevel.m_EdgeList[i].ConvertMesh();
             }
 
-            Vector3[] positions = new Vector3[m_LevelGraph.m_EdgeList.Count];
-            for (int i = 0; i < m_LevelGraph.m_EdgeList.Count; i++)
+            Vector3[] positions = new Vector3[m_SceneLevel.m_EdgeList.Count];
+            for (int i = 0; i < m_SceneLevel.m_EdgeList.Count; i++)
             {
-                positions[i] = m_LevelGraph.m_EdgeList[i].m_Position;
+                positions[i] = m_SceneLevel.m_EdgeList[i].m_Position;
             }
 
-            for (int i = 0; i < m_LevelGraph.m_EdgeList.Count; i++)
+            for (int i = 0; i < m_SceneLevel.m_EdgeList.Count; i++)
             {
-                var meshData = m_LevelGraph.m_EdgeList[i];
+                var meshData = m_SceneLevel.m_EdgeList[i];
                 var mesh = meshes[i];
                 var pos = positions[i];
                 m_MeshMaterial.SetColor("_Color", Color.red);
@@ -146,13 +152,13 @@ namespace DragonSlay.RandomLevel.Scene
         {
             float time = Time.realtimeSinceStartup;
             Vector3 pos = Vector3.zero;
-            m_LevelGraph.GenerateVoxel();
+            m_SceneLevel.GenerateVoxel();
             Debug.Log(Time.realtimeSinceStartup - time);
             time = Time.realtimeSinceStartup;
-            m_VoxelMesh =  m_LevelGraph.GenerateGraphMesh(ref pos);
+            m_VoxelMesh =  m_SceneLevel.GenerateGraphMesh(ref pos);
             Debug.Log(Time.realtimeSinceStartup - time);
             time = Time.realtimeSinceStartup;
-            var colors = m_LevelGraph.GenerateGraphColors();
+            var colors = m_SceneLevel.GenerateGraphColors();
             m_VoxelMesh.colors = colors;
 
             var graph = CreateMeshGameObject(m_VoxelMesh, pos, "Graph", m_VoxelMeshMaterial);
@@ -162,19 +168,19 @@ namespace DragonSlay.RandomLevel.Scene
 
         public void ChangeColor()
         {
-            var colors = m_LevelGraph.GenerateNewColor();
+            var colors = m_SceneLevel.GenerateNewColor();
             m_VoxelMesh.colors = colors;
         }
 
         public void CollsionSimulate(int simulateCount)
         {
-            m_LevelGraph.CollsionSimulate(simulateCount);
+            m_SceneLevel.CollsionSimulate(simulateCount);
             UpdateMeshPosition();
         }
 
         public void UpdateMeshPosition()
         {
-            Vector3[] positions = m_LevelGraph.GetMeshPositions();
+            Vector3[] positions = m_SceneLevel.GetMeshPositions();
             foreach (KeyValuePair<LevelMesh, GameObject> keyValue in m_MeshGoDic)
             {
                 var meshData = keyValue.Key;
@@ -202,6 +208,18 @@ namespace DragonSlay.RandomLevel.Scene
 
             m_MeshGoDic.Add(edge,go);
         }
+
+        #region Gameplay
+        public void GenerateGameplayLevel()
+        {
+            if(m_SceneLevel == null)
+            {
+                return;
+            }
+            m_GameplayLevel.Init(m_SceneLevel);
+        
+        }
+        #endregion
 
     }
 }

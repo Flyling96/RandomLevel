@@ -11,7 +11,7 @@ namespace DragonSlay.RandomLevel.Scene
             Graph g = new Graph(vertexs.Count);
             for (int i = 0; i < uEdge2Ds.Count; i++)
             {
-                g.AddEdge(uEdge2Ds[i].Points[0].Id, uEdge2Ds[i].Points[1].Id, uEdge2Ds[i].Distance);
+                g.AddEdge(uEdge2Ds[i].Point0.Id, uEdge2Ds[i].Point1.Id, uEdge2Ds[i].Distance);
             }
             var kruskal = g.Kruskal();
             List<UEdge2D> result = new List<UEdge2D>();

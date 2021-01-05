@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace DragonSlay.RandomLevel.Level
+namespace DragonSlay.RandomLevel.Gameplay
 {
     public class LevelArea
     {
-
+        public Vector3 m_Position;
     }
 }

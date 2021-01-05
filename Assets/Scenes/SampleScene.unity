@@ -155,7 +155,7 @@ MonoBehaviour:
     m_Height: 400
     m_InitCount: 30
     m_NeedMainRoom: 5
-    m_RoomFilter: 12000
+    m_RoomFilter: 6000
     m_PointRandomRange: 120
     m_MixPersents: 0.15
     m_CellSize: 1

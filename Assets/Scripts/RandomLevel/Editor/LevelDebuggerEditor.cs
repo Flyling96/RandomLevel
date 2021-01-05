@@ -12,7 +12,12 @@ namespace DragonSlay.RandomLevel.Scene
         {
             base.OnInspectorGUI();
             var debugger = target as LevelDebugger;
-            if(GUILayout.Button("GenerateMesh"))
+            if (GUILayout.Button("Clear"))
+            {
+                debugger.Clear();
+            }
+
+            if (GUILayout.Button("GenerateMesh"))
             {
                 debugger.GenerateAllPanel();
             }
@@ -28,21 +33,32 @@ namespace DragonSlay.RandomLevel.Scene
             {
                 debugger.GenerateEdge();
             }
+
+            if (GUILayout.Button("GenerateGameplayLevel"))
+            {
+                debugger.GenerateGameplayLevel();
+            }
+
             if (GUILayout.Button("GenerateVoxel"))
             {
                 debugger.GenerateVoxel();
             }
-            if (GUILayout.Button("Clear"))
+            //if (GUILayout.Button("EdgeMeshTest"))
+            //{
+            //    debugger.EdgeMeshTest();
+            //}
+            //if (GUILayout.Button("ChangeNewColor"))
+            //{
+            //    debugger.ChangeColor();
+            //}
+        }
+
+        private void OnSceneGUI()
+        {
+            var debugger = target as LevelDebugger;
+            if(debugger.m_GameplayLevel != null)
             {
-                debugger.Clear();
-            }
-            if (GUILayout.Button("EdgeMeshTest"))
-            {
-                debugger.EdgeMeshTest();
-            }
-            if (GUILayout.Button("ChangeNewColor"))
-            {
-                debugger.ChangeColor();
+                debugger.m_GameplayLevel.DrawGizmos();
             }
         }
     }
