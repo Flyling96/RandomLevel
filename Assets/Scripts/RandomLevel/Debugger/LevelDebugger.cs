@@ -92,7 +92,6 @@ namespace DragonSlay.RandomLevel
             return go;
         }
 
-
         public void FilterMinorPanel()
         {
             List<LevelMesh> removeKeys = new List<LevelMesh>();

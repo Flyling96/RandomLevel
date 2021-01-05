@@ -197,11 +197,11 @@ namespace DragonSlay.RandomLevel.Scene
                 return a.SortBy.CompareTo(b.SortBy);
             });
 
-            int newId = 0;
-            foreach (var v in _vertexes)
-            {
-                v.Id = newId++;
-            }
+            //int newId = 0;
+            //foreach (var v in _vertexes)
+            //{
+            //    v.Id = newId++;
+            //}
 
             // 找到最小和最大的点
             float minX = 0, minY = 0, maxX = 0, maxY = 0;
