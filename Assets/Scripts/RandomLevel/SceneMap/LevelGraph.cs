@@ -33,7 +33,7 @@ namespace DragonSlay.RandomLevel.Scene
         private float m_MixPersents = 0.15f;
 
         [SerializeField, Header("Cell的大小")]
-        private int m_CellSize = 1;
+        public int m_CellSize = 1;
 
         public List<LevelMesh> m_LevelMeshList = new List<LevelMesh>();
 
@@ -247,7 +247,7 @@ namespace DragonSlay.RandomLevel.Scene
 
         }
 
-        Dictionary<Vector2, LevelCell> m_LevelCellDic = new Dictionary<Vector2, LevelCell>();
+        public Dictionary<Vector2, LevelCell> m_LevelCellDic = new Dictionary<Vector2, LevelCell>();
         Vector2 m_StartPoint;
         Vector3 m_Right = new Vector3(1, 0, 0);
         Vector3 m_Up = new Vector3(0, 0, 1);
@@ -272,6 +272,7 @@ namespace DragonSlay.RandomLevel.Scene
                 int maxX = (int)aabb2D.m_Max.x;
                 int maxY = (int)aabb2D.m_Max.y;
 
+                bool isStart = false;
                 for (int y = minY; y < maxY + 1; y += voxelSize)
                 {
                     for (int x = minX; x < maxX + 1; x += voxelSize)
@@ -284,7 +285,17 @@ namespace DragonSlay.RandomLevel.Scene
                             cell = new LevelCell(cellCenter, room.m_Right, room.m_Up, voxelSize);
                             m_LevelCellDic.Add(cellCenter, cell);
                         }
-                        cell.m_ParentSet.Add(m_PanelList[i]);
+
+                        if (cell.IsInMesh(room))
+                        {
+                            cell.m_SceneCell.MaskCell(SceneCellType.Room);
+                            cell.m_GameplayCell.m_Walkable = true;
+                            if(!isStart)
+                            {
+                                room.m_CellStart = cell.m_Center;
+                                isStart = true;
+                            }
+                        }
                     }
                 }
                 aabb2DList.Add(m_PanelList[i].GetAABB2D(voxelSize) + pos);
@@ -298,7 +309,8 @@ namespace DragonSlay.RandomLevel.Scene
                 var edge = m_EdgeList[i];
                 Vector2 pos = edge.CalculateVoxelMeshPos2D(voxelSize);
                 var aabb2Ds = edge.GetAABB2Ds(voxelSize);
-                for(int j =0;j<aabb2Ds.Length;j++)
+                bool isStart = false;
+                for (int j =0;j<aabb2Ds.Length;j++)
                 {
                     var aabb2D = aabb2Ds[j] + pos;
                     int minX = (int)aabb2D.m_Min.x;
@@ -317,7 +329,17 @@ namespace DragonSlay.RandomLevel.Scene
                                 cell = new LevelCell(cellCenter, edge.m_Right, edge.m_Up, voxelSize);
                                 m_LevelCellDic.Add(cellCenter, cell);
                             }
-                            cell.m_ParentSet.Add(m_EdgeList[i]);
+
+                            if (cell.IsInMesh(edge))
+                            {
+                                cell.m_SceneCell.MaskCell(SceneCellType.Corridor);
+                                cell.m_GameplayCell.m_Walkable = true;
+                                if (!isStart)
+                                {
+                                    edge.m_CellStart = cell.m_Center;
+                                    isStart = true;
+                                }
+                            }
                         }
                     }
                     aabb2DList.Add(aabb2D);
@@ -362,21 +384,17 @@ namespace DragonSlay.RandomLevel.Scene
 
         public Color[] GenerateGraphColors()
         {
+            Color[] tempColors = new Color[4] { Color.black ,Color.red, Color.green, Color.blue };
             Color[] graphColors = new Color[m_LevelCellDic.Count * 5];
 
             foreach(var cell in m_LevelCellDic.Values)
             {
-                var parentList = cell.InSideLevelMesh();
                 Color color = Color.black;
-                for(int i =0;i< parentList.Count;i++)
+                for(int i =0;i< (int)SceneCellType.Max;i++)
                 {
-                    if(parentList[i] is LevelPanel)
+                    if(cell.m_SceneCell.IsMaskCell((SceneCellType)i))
                     {
-                        color += Color.red;
-                    }
-                    else if(parentList[i] is LevelEdge)
-                    {
-                        color += Color.green;
+                        color += tempColors[i];
                     }
                 }
 

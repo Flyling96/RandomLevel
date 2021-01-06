@@ -12,7 +12,7 @@ namespace DragonSlay.RandomLevel.Gameplay
 {
     public partial class LevelRoom : LevelArea
     {
-        List<LevelMesh> m_RoomMesh = null;
+        public List<LevelMesh> m_RoomMesh = null;
 
         public bool m_IsEnd = false;
 
@@ -24,11 +24,10 @@ namespace DragonSlay.RandomLevel.Gameplay
 
         public List<LevelRoom> m_NeighborList = new List<LevelRoom>();
 
-        public LevelRoom(int id, List<LevelMesh> roomMeshList)
+        public LevelRoom(int id)
         {
             m_Id = id;
-            m_RoomMesh = roomMeshList;
-
+            m_RoomMesh = new List<LevelMesh>();
         }
 
     }

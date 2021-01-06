@@ -57,6 +57,8 @@ namespace DragonSlay.RandomLevel.Scene
 
         public Vector3 m_Up = new Vector3(0, 0, 1);
 
+        public Vector2 m_CellStart;
+
         public Vector2[] m_Borders;
 
         public virtual AABoundingBox2D GetAABB2D()

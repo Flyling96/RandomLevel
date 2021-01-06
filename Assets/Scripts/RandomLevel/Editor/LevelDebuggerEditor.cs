@@ -34,23 +34,27 @@ namespace DragonSlay.RandomLevel.Scene
                 debugger.GenerateEdge();
             }
 
-            if (GUILayout.Button("GenerateGameplayLevel"))
-            {
-                debugger.GenerateGameplayLevel();
-            }
-
             if (GUILayout.Button("GenerateVoxel"))
             {
                 debugger.GenerateVoxel();
+            }
+
+            if (GUILayout.Button("GenerateGameplayLevel"))
+            {
+                debugger.GenerateGameplayLevel();
             }
             //if (GUILayout.Button("EdgeMeshTest"))
             //{
             //    debugger.EdgeMeshTest();
             //}
-            //if (GUILayout.Button("ChangeNewColor"))
-            //{
-            //    debugger.ChangeColor();
-            //}
+            if (GUILayout.Button("RefreshColor"))
+            {
+                debugger.RefreshColor();
+            }
+            if (GUILayout.Button("TempRefreshColor"))
+            {
+                debugger.TempRefreshColor();
+            }
         }
 
         private void OnSceneGUI()

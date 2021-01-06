@@ -42,12 +42,16 @@ namespace DragonSlay.RandomLevel.Scene
             }
         }
 
+        public Polygon m_Polygon = null;
         public virtual Polygon ToPolygon()
         {
-            Vector2 pos = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up)); ;
-            Vector3 normal = Vector3.Cross(m_Right, m_Up); ;
-            Polygon polygon = new Polygon(m_Center, m_Borders, pos,normal);
-            return polygon;
+            if (m_Polygon == null)
+            {
+                Vector2 pos = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up)); ;
+                Vector3 normal = Vector3.Cross(m_Right, m_Up); ;
+                m_Polygon = new Polygon(m_Center, m_Borders, pos, normal, 50);
+            }
+            return m_Polygon;
         }
 
         public virtual void SetPosition(Vector2 panelPosition)

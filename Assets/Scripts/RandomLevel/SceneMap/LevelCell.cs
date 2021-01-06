@@ -1,8 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DragonSlay.RandomLevel.Scene;
+using DragonSlay.RandomLevel.Gameplay;
 
-namespace DragonSlay.RandomLevel.Scene
+namespace DragonSlay.RandomLevel
 {
     public class LevelCell : LevelVoxel
     {
@@ -10,7 +12,11 @@ namespace DragonSlay.RandomLevel.Scene
 
         Vector3 m_Up = new Vector3(0, 0, 1);
 
-        Vector2 m_Center;
+        public Vector2 m_Center;
+
+        public SceneCell m_SceneCell;
+
+        public GameplayCell m_GameplayCell;
 
         public LevelCell(Vector2 center,Vector3 right,Vector3 up,int size)
         {
@@ -19,6 +25,8 @@ namespace DragonSlay.RandomLevel.Scene
             m_Up = up;
             m_Size = size;
             m_Position = m_Center.x * m_Right + m_Center.y * m_Up;
+            m_SceneCell = new SceneCell();
+            m_GameplayCell = new GameplayCell();
         }
 
         public override Mesh ConvertMesh()
@@ -65,22 +73,10 @@ namespace DragonSlay.RandomLevel.Scene
             }
         }
 
-        public List<LevelMesh> InSideLevelMesh()
+        public bool IsInMesh(LevelMesh2D mesh)
         {
-            List<LevelMesh> levelMeshList = new List<LevelMesh>();
-            foreach(var parent in m_ParentSet)
-            {
-                if(parent is LevelMesh2D parent2D)
-                {
-                    var panelPos = parent2D.CalculateVoxelMeshPos2D(m_Size);
-                    if(parent2D.IsPointInside(m_Center - panelPos))
-                    {
-                        levelMeshList.Add(parent);
-                    }
-                }
-            }
-
-            return levelMeshList;
+            var panelPos = mesh.CalculateVoxelMeshPos2D(m_Size);
+            return mesh.IsPointInside(m_Center - panelPos);
         }
 
         Color GetVertexColor(VertexColorType colorType)

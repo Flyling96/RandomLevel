@@ -164,10 +164,28 @@ namespace DragonSlay.RandomLevel
             graph.transform.position += Vector3.up * 0.2f;
 
         }
+    
 
-        public void ChangeColor()
+        public void TempRefreshColor()
         {
-            var colors = m_SceneLevel.GenerateNewColor();
+            foreach(var keyValue in m_MeshGoDic)
+            {
+                var levelMesh = keyValue.Key;
+                var go = keyValue.Value;
+                if(levelMesh is LevelPanel levelPanel)
+                {
+                    if(levelPanel.m_Polygon != null)
+                    {
+                        go.GetComponent<MeshRenderer>().sharedMaterial.SetColor("_Color", 
+                            levelPanel.m_Polygon.m_Pole == 0 ? Color.red : Color.green);
+                    }
+                }
+            }
+        }
+
+        public void RefreshColor()
+        {
+            var colors = m_SceneLevel.GenerateGraphColors();
             m_VoxelMesh.colors = colors;
         }
 
