@@ -7,5 +7,7 @@ namespace DragonSlay.RandomLevel.Gameplay
     public class LevelArea
     {
         public Vector3 m_Position;
+
+        public HashSet<LevelCell> m_Cells = new HashSet<LevelCell>();
     }
 }

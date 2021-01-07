@@ -18,6 +18,19 @@ namespace DragonSlay.RandomLevel
 
         public GameplayCell m_GameplayCell;
 
+        public LevelArea GameplayBelong
+        {
+            get
+            {
+                return m_GameplayCell.m_Belong;
+            }
+            set
+            {
+                m_GameplayCell.m_Belong = value;
+                value.m_Cells.Add(this);
+            }
+        }
+
         public LevelCell(Vector2 center,Vector3 right,Vector3 up,int size)
         {
             m_Center = center;
@@ -88,5 +101,6 @@ namespace DragonSlay.RandomLevel
             }
             return Color.black;
         }
+
     }
 }

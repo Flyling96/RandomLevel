@@ -12,7 +12,7 @@ namespace DragonSlay.RandomLevel.Gameplay
 {
     public partial class LevelRoom : LevelArea
     {
-        public List<LevelMesh> m_RoomMesh = null;
+        public List<LevelMesh> m_MeshList = null;
 
         public bool m_IsEnd = false;
 
@@ -27,7 +27,7 @@ namespace DragonSlay.RandomLevel.Gameplay
         public LevelRoom(int id)
         {
             m_Id = id;
-            m_RoomMesh = new List<LevelMesh>();
+            m_MeshList = new List<LevelMesh>();
         }
 
     }
@@ -37,9 +37,9 @@ namespace DragonSlay.RandomLevel.Gameplay
     {
         public void DrawGizmos()
         {
-            for(int i =0;i< m_RoomMesh.Count;i++)
+            for(int i =0;i< m_MeshList.Count;i++)
             {
-                var mesh = m_RoomMesh[i];
+                var mesh = m_MeshList[i];
                 if(mesh == null)
                 {
                     continue;
@@ -47,11 +47,23 @@ namespace DragonSlay.RandomLevel.Gameplay
                 Handles.BeginGUI();
                 var labelPos = HandleUtility.WorldToGUIPoint(mesh.m_Position);
                 GUIStyle style = new GUIStyle();
-                style.normal.textColor = Color.yellow;
+                if(m_IsStart)
+                {
+                    style.normal.textColor = Color.green;
+                }
+                else if(m_IsEnd)
+                {
+                    style.normal.textColor = Color.blue;
+                }
+                else
+                {
+                    style.normal.textColor = Color.yellow;
+                }
                 style.alignment = TextAnchor.MiddleCenter;
                 style.richText = true;
                 style.fontSize = 24;
-                GUI.Label(new Rect(labelPos, new Vector2(30, 30)), new GUIContent(m_Id.ToString()), style);
+                GUI.Label(new Rect(labelPos, new Vector2(30, 30)), 
+                    new GUIContent(string.Format("{0}_{1}",m_Id,m_Index)), style);
                 Handles.EndGUI();
             }
         }

@@ -51,33 +51,44 @@ namespace DragonSlay.RandomLevel.Scene
         {
             Clear();
 
+            m_NeedMainPanel = Mathf.Min(m_NeedMainPanel, m_InitCount);
             Vector2[] allRect = new Vector2[m_InitCount];
             m_RoomFilter = Mathf.Min((m_PointRandomRange - 10) * (m_PointRandomRange - 10), m_RoomFilter);
+            int count = 0;
+            int index = 0;
             while (true)
             {
-                int main_count = 0;
-                for (int i = 0; i < m_InitCount; i++)
-                {
-                    Vector2 rect;
-                    if (main_count == m_NeedMainPanel)
-                    {
-                        rect = new Vector2(Random.Range(20, Mathf.Sqrt(m_RoomFilter)), Random.Range(20, Mathf.Sqrt(m_RoomFilter)));
-                    }
-                    else
-                    {
-                        rect = new Vector2(Random.Range(20, m_PointRandomRange), Random.Range(20, m_PointRandomRange));
-                    }
-                    if (rect.x * rect.y > m_RoomFilter)
-                    {
-                        main_count++;
-                    }
-                    allRect[i] = rect;
-                }
-                if (main_count >= m_NeedMainPanel)
+                if (count == m_NeedMainPanel)
                 {
                     break;
                 }
+
+                Vector2 rect = new Vector2(Random.Range(20, m_PointRandomRange), Random.Range(20, m_PointRandomRange));
+                if (rect.x * rect.y >= m_RoomFilter)
+                {
+                    allRect[index] = rect;
+                    index++;
+                    count++;
+                }
             }
+
+            count = 0;
+            while (true)
+            {
+                if (count == m_InitCount - m_NeedMainPanel)
+                {
+                    break;
+                }
+
+                Vector2 rect = new Vector2(Random.Range(20, m_PointRandomRange), Random.Range(20, m_PointRandomRange));
+                if (rect.x * rect.y < m_RoomFilter)
+                {
+                    allRect[index] = rect;
+                    index++;
+                    count++;
+                }
+            }
+
 
             for (int i = 0; i < allRect.Length; i++)
             {
@@ -137,7 +148,7 @@ namespace DragonSlay.RandomLevel.Scene
                 var levelMesh = m_LevelMeshList[i];
                 if(levelMesh is LevelPanel levelPanel)
                 {
-                    m_PolygonList.Add(levelPanel.ToPolygon());
+                    m_PolygonList.Add(levelPanel.Polygon);
                 }
             }
 

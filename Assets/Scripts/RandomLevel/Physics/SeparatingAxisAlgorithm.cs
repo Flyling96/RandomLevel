@@ -26,7 +26,7 @@ public class Polygon
         m_SkinBorders = new Vector2[m_Borders.Length];
         for (int i =0;i< m_SkinBorders.Length;i++)
         {
-            m_SkinBorders[i] += (m_Borders[i] - m_Center).normalized * m_SkinWidth;
+            m_SkinBorders[i] += m_Borders[i] + (m_Borders[i] - m_Center).normalized * m_SkinWidth;
         }
         m_Position = position;
         m_Normal = normal;

@@ -43,6 +43,11 @@ namespace DragonSlay.RandomLevel.Scene
             {
                 debugger.GenerateGameplayLevel();
             }
+
+            if (GUILayout.Button("InitLevelStartEnd"))
+            {
+                debugger.InitLevelStartEnd();
+            }
             //if (GUILayout.Button("EdgeMeshTest"))
             //{
             //    debugger.EdgeMeshTest();

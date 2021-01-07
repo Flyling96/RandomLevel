@@ -36,16 +36,16 @@ namespace DragonSlay.RandomLevel.Scene
             m_Start = Vector2.zero;
             m_End = data.Point1.Point - data.Point0.Point;
             m_MidPoints = new Vector2[0];
-            //float RandomX = Random.Range(0, m_End.x);
-            //float RandomY = Random.Range(0, m_End.y);
-            //if (RandomY < RandomX)
-            //{
-            //    m_MidPoints = new Vector2[2] { new Vector2(m_Start.x, RandomY), new Vector2(m_End.x, RandomY) };
-            //}
-            //else
-            //{
-            //    m_MidPoints = new Vector2[2] { new Vector2(RandomX, m_Start.y), new Vector2(RandomX, m_End.y) };
-            //}
+            float RandomX = Random.Range(0, m_End.x);
+            float RandomY = Random.Range(0, m_End.y);
+            if (RandomY < RandomX)
+            {
+                m_MidPoints = new Vector2[2] { new Vector2(m_Start.x, RandomY), new Vector2(m_End.x, RandomY) };
+            }
+            else
+            {
+                m_MidPoints = new Vector2[2] { new Vector2(RandomX, m_Start.y), new Vector2(RandomX, m_End.y) };
+            }
             //m_MidPoints = new Vector2[1] { new Vector2(m_Start.x,m_End.y)};
             m_EdgeWidth = width;
         }

@@ -174,10 +174,10 @@ namespace DragonSlay.RandomLevel
                 var go = keyValue.Value;
                 if(levelMesh is LevelPanel levelPanel)
                 {
-                    if(levelPanel.m_Polygon != null)
+                    if(levelPanel.Polygon != null)
                     {
                         go.GetComponent<MeshRenderer>().sharedMaterial.SetColor("_Color", 
-                            levelPanel.m_Polygon.m_Pole == 0 ? Color.red : Color.green);
+                            levelPanel.Polygon.m_Pole == 0 ? Color.red : Color.green);
                     }
                 }
             }
@@ -229,12 +229,21 @@ namespace DragonSlay.RandomLevel
         #region Gameplay
         public void GenerateGameplayLevel()
         {
-            if(m_SceneLevel == null)
+            if(m_SceneLevel == null || m_GameplayLevel == null)
             {
                 return;
             }
             m_GameplayLevel.Init(m_SceneLevel);
         
+        }
+
+        public void InitLevelStartEnd()
+        {
+            if (m_SceneLevel == null || m_GameplayLevel == null)
+            {
+                return;
+            }
+            m_GameplayLevel.InitStartEnd();
         }
         #endregion
 

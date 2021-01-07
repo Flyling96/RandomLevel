@@ -4,11 +4,8 @@ using UnityEngine;
 
 namespace DragonSlay.RandomLevel.Gameplay
 {
-    public class GameplayCell
+    public class LevelGroup : LevelArea 
     {
-        public bool m_Walkable = false;
-
-        public LevelArea m_Belong = null;
+        
     }
 }
-
