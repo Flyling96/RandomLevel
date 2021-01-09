@@ -8,9 +8,9 @@ namespace DragonSlay.RandomLevel
 {
     public class LevelCell : LevelVoxel
     {
-        Vector3 m_Right = new Vector3(1, 0, 0);
+        public Vector3 m_Right = new Vector3(1, 0, 0);
 
-        Vector3 m_Up = new Vector3(0, 0, 1);
+        public Vector3 m_Up = new Vector3(0, 0, 1);
 
         public Vector2 m_Center;
 

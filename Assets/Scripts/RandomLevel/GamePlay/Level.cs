@@ -13,6 +13,7 @@ namespace DragonSlay.RandomLevel.Gameplay
         [SerializeField, Header("起点终点最小深度")]
         private int m_MinDepth = 6;
 
+        Dictionary<Vector3, LevelCell> m_CellPosDic = new Dictionary<Vector3, LevelCell>();
         List<LevelRoom> m_LevelRoomList = new List<LevelRoom>();
         List<LevelCorridor> m_LevelCorridorList = new List<LevelCorridor>();
         Graph m_Graph = null;
@@ -21,6 +22,10 @@ namespace DragonSlay.RandomLevel.Gameplay
         {
             m_LevelRoomList?.Clear();
             m_LevelCorridorList?.Clear();
+            m_CellPosDic = sceneGraph.m_LevelCellDic;
+
+
+
 
             foreach (var cell in sceneGraph.m_LevelCellDic.Values)
             {
@@ -44,7 +49,7 @@ namespace DragonSlay.RandomLevel.Gameplay
                 new Vector2(-cellSize, 0), new Vector2(cellSize, 0) };
             int index = 0;
 
-            Vector2 nextPos;
+            Vector3 nextPos;
             LevelCell nextCell;
             for (int i =0;i< roomMeshList.Count;i++)
             {
@@ -64,6 +69,8 @@ namespace DragonSlay.RandomLevel.Gameplay
                     continue;
                 }
 
+                Vector3 right = roomMesh.m_Right;
+                Vector3 up = roomMesh.m_Up;
                 LevelRoom room = new LevelRoom(index);
                 m_LevelRoomList.Add(room);
                 index++;
@@ -71,16 +78,16 @@ namespace DragonSlay.RandomLevel.Gameplay
                 cell.GameplayBelong = room;
                 room.m_MeshList.Add(roomMesh);
 
-                HashSet<Vector2> findNext = new HashSet<Vector2>();
+                HashSet<Vector3> findNext = new HashSet<Vector3>();
                 findNext.Add(roomMesh.m_CellStart);
                 while (findNext.Count != 0)
                 {
-                    HashSet<Vector2> nextSet = new HashSet<Vector2>();
+                    HashSet<Vector3> nextSet = new HashSet<Vector3>();
                     foreach (var pos in findNext)
                     {
                         for(int j = 0;j < 4; j++)
                         {
-                            nextPos = pos + offsets[j];
+                            nextPos = pos + offsets[j].x * right + offsets[j].y * up;
                             if (cellDic.TryGetValue(nextPos, out nextCell))
                             {
                                 if (nextCell.m_SceneCell.IsMaskCell(SceneCellType.Room) && nextCell.GameplayBelong == null)
@@ -109,7 +116,7 @@ namespace DragonSlay.RandomLevel.Gameplay
                 new Vector2(-cellSize, 0), new Vector2(cellSize, 0) };
             //int index = 0;
 
-            Vector2 nextPos;
+            Vector3 nextPos;
             LevelCell nextCell;
 
             foreach (var door in doorCellSet)
@@ -119,19 +126,22 @@ namespace DragonSlay.RandomLevel.Gameplay
                     continue;
                 }
 
+                Vector3 right = door.m_Right;
+                Vector3 up = door.m_Up;
+
                 LevelCorridor corridor = new LevelCorridor();
                 m_LevelCorridorList.Add(corridor);
                 corridor.m_Position = door.m_Position;
-                HashSet<Vector2> findNext = new HashSet<Vector2>();
-                findNext.Add(door.m_Center);
+                HashSet<Vector3> findNext = new HashSet<Vector3>();
+                findNext.Add(door.m_Position);
                 while (findNext.Count != 0)
                 {
-                    HashSet<Vector2> nextSet = new HashSet<Vector2>();
+                    HashSet<Vector3> nextSet = new HashSet<Vector3>();
                     foreach (var pos in findNext)
                     {
                         for (int j = 0; j < 4; j++)
                         {
-                            nextPos = pos + offsets[j];
+                            nextPos = pos + offsets[j].x * right + offsets[j].y * up;
                             if (cellDic.TryGetValue(nextPos, out nextCell))
                             {
                                 if (nextCell.m_SceneCell.IsMaskCell(SceneCellType.Corridor) && !nextCell.m_SceneCell.IsMaskCell(SceneCellType.Room) && nextCell.GameplayBelong == null)
@@ -456,14 +466,14 @@ namespace DragonSlay.RandomLevel.Gameplay
                 }
             }
 
-            if(m_LevelCorridorList != null)
-            {
-                for(int i =0;i< m_LevelCorridorList.Count;i++)
-                {
-                    var corridor = m_LevelCorridorList[i];
-                    corridor.DrawGizmos();
-                }
-            }
+            //if(m_LevelCorridorList != null)
+            //{
+            //    for(int i =0;i< m_LevelCorridorList.Count;i++)
+            //    {
+            //        var corridor = m_LevelCorridorList[i];
+            //        corridor.DrawGizmos();
+            //    }
+            //}
         }
     }
 #endif

@@ -4,8 +4,8 @@ using UnityEngine;
 
 namespace DragonSlay.RandomLevel.Gameplay
 {
-    public class LevelGroup : LevelArea 
+    public class Door : LevelGroup
     {
-        
+
     }
 }

@@ -94,12 +94,21 @@ namespace DragonSlay.RandomLevel.Scene
             {
                 var pos = GetRandomPointInEllipse(m_Width, m_Height);
                 var rect = allRect[i];
-                RectPanel rectPanel = new RectPanel(rect.x, rect.y, Vector2.zero, pos);
-                rectPanel.GenerateMesh();
-                m_LevelMeshList.Add(rectPanel);
-                if(rectPanel.m_Acreage > m_RoomFilter)
+                int type = Random.Range(0, 2);
+                LevelPanel levelPanel = null;
+                if (type == 0)
                 {
-                    m_PanelList.Add(rectPanel);
+                    levelPanel = new RectPanel(rect.x, rect.y, Vector2.zero, pos);
+                }
+                else if(type == 1)
+                {
+                    levelPanel = new CirclePanel(Mathf.Max(rect.x, rect.y) / 2.0f, Vector2.zero, pos);
+                }
+                levelPanel.GenerateMesh();
+                m_LevelMeshList.Add(levelPanel);
+                if(levelPanel.m_Acreage > m_RoomFilter)
+                {
+                    m_PanelList.Add(levelPanel);
                 }
             }
 
@@ -141,28 +150,27 @@ namespace DragonSlay.RandomLevel.Scene
 
         public void CollsionSimulate(int simulateCount)
         {
-            List<Polygon> m_PolygonList = new List<Polygon>();
+            List<Shape> shapeList = new List<Shape>();
 
             for(int i = 0;i<m_LevelMeshList.Count;i++)
             {
                 var levelMesh = m_LevelMeshList[i];
                 if(levelMesh is LevelPanel levelPanel)
                 {
-                    m_PolygonList.Add(levelPanel.Polygon);
+                    shapeList.Add(levelPanel.Shape);
                 }
             }
 
-            SeparatingAxisAlgorithm algorithm = new SeparatingAxisAlgorithm();
             bool isCollide = false;
             while (simulateCount > 0)
             {
-                for (int i = 0; i < m_PolygonList.Count; i++)
+                for (int i = 0; i < shapeList.Count; i++)
                 {
-                    var polygon0 = m_PolygonList[i];
-                    for (int j = i + 1; j < m_PolygonList.Count; j++)
+                    var shape0 = shapeList[i];
+                    for (int j = i + 1; j < shapeList.Count; j++)
                     {
-                        var polygon1 = m_PolygonList[j];
-                        if (algorithm.SeparatingAxis(polygon0, polygon1))
+                        var shape1 = shapeList[j];
+                        if (SeparatingAxisAlgorithm.SeparatingAxis(shape0, shape1))
                         {
                             isCollide = true;
                         }
@@ -181,7 +189,7 @@ namespace DragonSlay.RandomLevel.Scene
                 var levelMesh = m_LevelMeshList[i];
                 if (levelMesh is LevelPanel levelPanel)
                 {
-                    var polygon = m_PolygonList[i];
+                    var polygon = shapeList[i];
                     levelPanel.SetPosition(polygon.m_Position);
                 }
             }
@@ -193,9 +201,11 @@ namespace DragonSlay.RandomLevel.Scene
             m_EdgeList.Clear();
             //三角剖分
             List<UVertex2D> vertexs = new List<UVertex2D>();
+            List<Shape> shapeList = new List<Shape>();
             for (int i = 0; i < m_PanelList.Count; i++)
             {
                 vertexs.Add(new UVertex2D(i, m_PanelList[i].m_PanelPosition + m_PanelList[i].m_Center));
+                shapeList.Add(m_PanelList[i].Shape);
             }
             var delaunayResult = UDelaunayBest.GetTriangles2D(vertexs);
 
@@ -251,14 +261,17 @@ namespace DragonSlay.RandomLevel.Scene
             for (int i =0;i< spanningTreeEdges.Count;i++)
             {
                 var edge = spanningTreeEdges[i];
-                var levelEdge = new LevelEdge(edge,5);
+                var startPolygon = shapeList[edge.Point0.Id];
+                var endPolygon = shapeList[edge.Point1.Id];
+                //var levelEdge = new LevelEdge(edge,5);
+                var levelEdge = new LevelEdge(startPolygon, endPolygon, shapeList, 5);
                 levelEdge.GenerateMesh();
                 m_EdgeList.Add(levelEdge);
             }
 
         }
 
-        public Dictionary<Vector2, LevelCell> m_LevelCellDic = new Dictionary<Vector2, LevelCell>();
+        public Dictionary<Vector3, LevelCell> m_LevelCellDic = new Dictionary<Vector3, LevelCell>();
         Vector2 m_StartPoint;
         Vector3 m_Right = new Vector3(1, 0, 0);
         Vector3 m_Up = new Vector3(0, 0, 1);
@@ -290,11 +303,12 @@ namespace DragonSlay.RandomLevel.Scene
                     {
                         LevelCell cell = null;
                         Vector2 cellCenter = new Vector2(x, y);
+                        Vector3 cellPos = cellCenter.x * room.m_Right + cellCenter.y * room.m_Up;
                         //XXX:Dictionary 查询消耗较大，可以考虑用数组替代
-                        if (!m_LevelCellDic.TryGetValue(cellCenter,out cell))
+                        if (!m_LevelCellDic.TryGetValue(cellPos, out cell))
                         {
                             cell = new LevelCell(cellCenter, room.m_Right, room.m_Up, voxelSize);
-                            m_LevelCellDic.Add(cellCenter, cell);
+                            m_LevelCellDic.Add(cellPos, cell);
                         }
 
                         if (cell.IsInMesh(room))
@@ -303,7 +317,7 @@ namespace DragonSlay.RandomLevel.Scene
                             cell.m_GameplayCell.m_Walkable = true;
                             if(!isStart)
                             {
-                                room.m_CellStart = cell.m_Center;
+                                room.m_CellStart = cell.m_Position;
                                 isStart = true;
                             }
                         }
@@ -335,10 +349,11 @@ namespace DragonSlay.RandomLevel.Scene
                         {
                             LevelCell cell = null;
                             Vector2 cellCenter = new Vector2(x, y);
-                            if (!m_LevelCellDic.TryGetValue(cellCenter, out cell))
+                            Vector3 cellPos = cellCenter.x * edge.m_Right + cellCenter.y * edge.m_Up;
+                            if (!m_LevelCellDic.TryGetValue(cellPos, out cell))
                             {
                                 cell = new LevelCell(cellCenter, edge.m_Right, edge.m_Up, voxelSize);
-                                m_LevelCellDic.Add(cellCenter, cell);
+                                m_LevelCellDic.Add(cellPos, cell);
                             }
 
                             if (cell.IsInMesh(edge))
@@ -347,7 +362,7 @@ namespace DragonSlay.RandomLevel.Scene
                                 cell.m_GameplayCell.m_Walkable = true;
                                 if (!isStart)
                                 {
-                                    edge.m_CellStart = cell.m_Center;
+                                    edge.m_CellStart = cell.m_Position;
                                     isStart = true;
                                 }
                             }

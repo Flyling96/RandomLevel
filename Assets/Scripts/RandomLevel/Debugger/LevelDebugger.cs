@@ -174,10 +174,10 @@ namespace DragonSlay.RandomLevel
                 var go = keyValue.Value;
                 if(levelMesh is LevelPanel levelPanel)
                 {
-                    if(levelPanel.Polygon != null)
+                    if(levelPanel.Shape != null)
                     {
                         go.GetComponent<MeshRenderer>().sharedMaterial.SetColor("_Color", 
-                            levelPanel.Polygon.m_Pole == 0 ? Color.red : Color.green);
+                            levelPanel.Shape.m_Pole == 0 ? Color.red : Color.green);
                     }
                 }
             }

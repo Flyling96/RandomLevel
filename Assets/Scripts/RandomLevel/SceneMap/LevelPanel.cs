@@ -7,7 +7,7 @@ namespace DragonSlay.RandomLevel.Scene
     public enum LevelPanelType
     {
         Rect,
-        Sphere,
+        Circle,
     }
 
 
@@ -42,18 +42,18 @@ namespace DragonSlay.RandomLevel.Scene
             }
         }
 
-        Polygon m_Polygon = null;
-        public Polygon Polygon
+        protected Shape m_Shape = null;
+        public virtual Shape Shape
         {
             get
             {
-                if (m_Polygon == null)
+                if (m_Shape == null)
                 {
                     Vector2 pos = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up)); ;
                     Vector3 normal = Vector3.Cross(m_Right, m_Up); ;
-                    m_Polygon = new Polygon(m_Center, m_Borders, pos, normal, 20);
+                    m_Shape = new Polygon(m_Center, m_Borders, pos, normal, 20);
                 }
-                return m_Polygon;
+                return m_Shape;
             }
         }
 
