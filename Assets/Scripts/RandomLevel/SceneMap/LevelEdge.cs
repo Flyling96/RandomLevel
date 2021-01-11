@@ -39,7 +39,7 @@ namespace DragonSlay.RandomLevel.Scene
             //m_End = endPos - startPos;
             FillBezier2MidPoint(start,end, shapeList, 100);
 
-            //Vector2[] mainMidPoints = null;
+            //Vector2[] mainMidPoints = new Vector2[1] { new Vector2(m_Start.x, m_End.y) };
             //float RandomX = Random.Range(0, m_End.x);
             //float RandomY = Random.Range(0, m_End.y);
             //if (RandomY < RandomX)
@@ -375,30 +375,44 @@ namespace DragonSlay.RandomLevel.Scene
 
         #region Curve
 
-        int MidPointCollsion(Shape start, Shape end, List<Shape> shapeList, Vector2[] midpoints)
+        int MidPointCollsion(Shape start, Shape end, List<Shape> shapeList, Vector2[] midpoints, bool ignoreStartEnd = true)
         {
             HashSet<Shape> collsionShape = new HashSet<Shape>();
-            for (int j = 0; j < midpoints.Length; j++)
+            for (int j = 1; j < midpoints.Length - 1; j++)
             {
                 var midPoint = midpoints[j];
                 for (int i = 0; i < shapeList.Count; i++)
                 {
                     var shape = shapeList[i];
                     var positionOffset = shape.m_Position - start.m_Position;
-                    if (shape == start || shape == end)
+                    if (ignoreStartEnd)
                     {
-                        continue;
+                        if (shape == start || shape == end)
+                        {
+                            continue;
+                        }
                     }
 
                     bool oldCanMove = shapeList[i].m_CanMove;
                     float oldSkinWidth = shapeList[i].m_SkinWidth;
                     shapeList[i].m_CanMove = false;
                     shapeList[i].m_SkinWidth = 0;
-                    Circle circle = new Circle(midPoint + start.m_Position, m_EdgeWidth,0);
-                    if (SeparatingAxisAlgorithm.SeparatingAxis(shapeList[i], circle))
+                    Vector2 midPointPos = midPoint + start.m_Position;
+                    Circle circle = new Circle(midPointPos, m_EdgeWidth + 2,0);
+                    if (GeometryHelper.SeparatingAxis(shapeList[i], circle))
                     {
-                        midpoints[j] = circle.m_Position - start.m_Position;
+                        Vector2 offset = circle.m_Position - midPointPos;
+                        Vector2 moveDir = (midPointPos - shape.m_Position).normalized;
+                        float length = offset.magnitude;
+                        offset = offset.normalized;
+                        float cos = offset.x * moveDir.x + offset.y * moveDir.y;
+                        length = length / cos;
+                        //midpoints[j] = midPoint;// + moveDir * length;
+                        midpoints[j] = midPoint + offset;
                         collsionShape.Add(shapeList[i]);
+                        shapeList[i].m_CanMove = oldCanMove;
+                        shapeList[i].m_SkinWidth = oldSkinWidth;
+                        break;
                     }
                     shapeList[i].m_CanMove = oldCanMove;
                     shapeList[i].m_SkinWidth = oldSkinWidth;
@@ -408,7 +422,7 @@ namespace DragonSlay.RandomLevel.Scene
             return collsionShape.Count;
         }
 
-        int MidPointSphereCollsion(Shape start, Shape end, List<Shape> shapeList, Vector2[] midpoints)
+        int MidPointSphereCollsion(Shape start, Shape end, List<Shape> shapeList, Vector2[] midpoints, bool ignoreStartEnd = true)
         {
             HashSet<Shape> collsionShape = new HashSet<Shape>();
             for (int j = 0; j < midpoints.Length; j++)
@@ -418,10 +432,14 @@ namespace DragonSlay.RandomLevel.Scene
                 {
                     var shape = shapeList[i];
                     var positionOffset = shape.m_Position - start.m_Position;
-                    if (shape == start || shape == end)
+                    if (ignoreStartEnd)
                     {
-                        continue;
+                        if (shape == start || shape == end)
+                        {
+                            continue;
+                        }
                     }
+
                     float sphereDistance = shape.GetBoundingSphereRadius() + m_EdgeWidth + 1;
                     if (Vector2.Distance(midPoint, positionOffset) < sphereDistance)
                     {
@@ -438,14 +456,18 @@ namespace DragonSlay.RandomLevel.Scene
         void FillPolyLineMidPoint(Shape start, Shape end, List<Shape> shapeList, int midPointCount,Vector2[] midMainPoints)
         {
             Vector2[] mainPoints = new Vector2[midMainPoints.Length + 2];
+            List<Shape> tempList = new List<Shape>();
+            tempList.Add(start);
+            tempList.Add(end);
             mainPoints[0] = m_Start; mainPoints[mainPoints.Length - 1] = m_End;
             for(int i = 1; i < mainPoints.Length -1;i++)
             {
                 mainPoints[i] = midMainPoints[i - 1];
             }
+            //MidPointCollsion(start, end, tempList, mainPoints, false);
 
             var midPoints = FillPolyLineMidPoint(midPointCount, mainPoints);
-            int collsionCount = MidPointCollsion(start, end, shapeList, midPoints);
+            int collsionCount = MidPointSphereCollsion(start, end, shapeList, midPoints);
             m_MidPoints = midPoints;
         }
 

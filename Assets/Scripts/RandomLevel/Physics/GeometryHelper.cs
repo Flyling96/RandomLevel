@@ -116,8 +116,10 @@ public class Polygon : Shape
 }
 
 
-public static class SeparatingAxisAlgorithm 
+public static class GeometryHelper 
 {
+    public static float AttractStrength = 0.2f;
+
     public static bool SeparatingAxis(Shape s0, Shape s1)
     {
         if (s0 is Polygon p0)
@@ -161,11 +163,16 @@ public static class SeparatingAxisAlgorithm
             return false;
         }
 
-        Vector2 moveDir = (c0.m_Position - c1.m_Position).normalized * (target - distance)/2;
+        Vector2 mainDir = c0.m_Position - c1.m_Position;
+        if (mainDir == Vector2.zero)
+        {
+            mainDir = new Vector2(1, 0);
+        }
+        Vector2 moveDir = mainDir.normalized * (target - distance)/2;
 
         if (!isRepulsive)
         {
-            moveDir -= (c0.m_Position - c1.m_Position).normalized * 0.5f;
+            moveDir -= moveDir.normalized * AttractStrength;
         }
 
         if (c1.m_CanMove && c0.m_CanMove)
@@ -225,11 +232,17 @@ public static class SeparatingAxisAlgorithm
             }
         }
 
-        Vector2 moveDir = projValue * projAxis / 2;
+        Vector2 mainDir = c0.m_Position - p0.m_Position;
+        if(mainDir == Vector2.zero)
+        {
+            mainDir = new Vector2(1, 0);
+        }
+
+        Vector2 moveDir =CaculateMoveDir(projAxis,projValue,mainDir)/2;
 
         if (!isRepulsive)
         {
-            moveDir -= (c0.m_Position - p0.m_Position).normalized * 0.5f;
+            moveDir -= moveDir.normalized * AttractStrength;
         }
 
         if (p0.m_CanMove && c0.m_CanMove)
@@ -311,11 +324,17 @@ public static class SeparatingAxisAlgorithm
             }
         }
 
-        Vector2 moveDir = projValue * projAxis / 2;
+        Vector2 mainDir = p1.m_Position - p0.m_Position;
+        if (mainDir == Vector2.zero)
+        {
+            mainDir = new Vector2(1, 0);
+        }
+
+        Vector2 moveDir = CaculateMoveDir(projAxis, projValue, mainDir) / 2;
 
         if (!isRepulsive)
         {
-            moveDir -= (p1.m_Position - p0.m_Position).normalized * 0.5f;
+            moveDir -= moveDir.normalized * AttractStrength;
         }
 
         if (p0.m_CanMove && p1.m_CanMove)
@@ -333,6 +352,18 @@ public static class SeparatingAxisAlgorithm
         }
 
         return true;
+    }
+
+    static Vector2 CaculateMoveDir(Vector2 axis,float moveValue,Vector2 mainDir)
+    {
+        float angle = Mathf.Atan(axis.y / axis.x);
+        Vector2 res = new Vector2(Mathf.Cos(angle) * moveValue, Mathf.Sin(angle) * moveValue);
+        if(res.x * mainDir.x + res.y * mainDir.y < 0)
+        {
+            res.x = -res.x;
+            res.y = -res.y;
+        }
+        return res;
     }
 
     public static float SeparatingAxisDistance(Polygon p0, Polygon p1)

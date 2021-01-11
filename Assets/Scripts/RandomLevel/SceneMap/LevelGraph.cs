@@ -94,7 +94,7 @@ namespace DragonSlay.RandomLevel.Scene
             {
                 var pos = GetRandomPointInEllipse(m_Width, m_Height);
                 var rect = allRect[i];
-                int type = Random.Range(0, 2);
+                int type = 0;// Random.Range(0, 2);
                 LevelPanel levelPanel = null;
                 if (type == 0)
                 {
@@ -170,7 +170,7 @@ namespace DragonSlay.RandomLevel.Scene
                     for (int j = i + 1; j < shapeList.Count; j++)
                     {
                         var shape1 = shapeList[j];
-                        if (SeparatingAxisAlgorithm.SeparatingAxis(shape0, shape1))
+                        if (GeometryHelper.SeparatingAxis(shape0, shape1))
                         {
                             isCollide = true;
                         }

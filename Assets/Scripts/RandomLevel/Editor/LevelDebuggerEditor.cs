@@ -23,7 +23,7 @@ namespace DragonSlay.RandomLevel.Scene
             }
             if (GUILayout.Button("CollsionSimulate"))
             {
-                debugger.CollsionSimulate(2);
+                debugger.CollsionSimulate(100);
             }
             if (GUILayout.Button("FilterMinor"))
             {
