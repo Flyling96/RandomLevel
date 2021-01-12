@@ -30,7 +30,7 @@ public class Circle: Shape
         m_Position = pos;
         m_Radius = radius;
         m_SkinWidth = skinWidth;
-        m_Pole = Random.Range(0, 500) % 2;
+        m_Pole = Random.Range(0, 500) % 3;
     }
 
     public override float GetBoundingSphereRadius(bool isSkinWidth = false)
@@ -66,7 +66,7 @@ public class Polygon : Shape
         }
         m_Position = position;
         m_Normal = normal;
-        m_Pole = Random.Range(0, 500) % 2;
+        m_Pole = Random.Range(0, 500) % 3;
     }
 
     public void Move(Vector2 movePos)
@@ -119,7 +119,7 @@ public class Polygon : Shape
 public static class GeometryHelper 
 {
     #region SeparatingAxis
-    public static float AttractStrength = 0.2f;
+    public static float AttractStrength = 2.5f;
 
     public static bool SeparatingAxis(Shape s0, Shape s1)
     {
@@ -151,7 +151,7 @@ public static class GeometryHelper
 
     public static bool SeparatingAxis(Circle c0, Circle c1)
     {
-        bool isRepulsive = c0.m_Pole == 0 || c1.m_Pole == 0;
+        bool isRepulsive = c0.m_Pole != 1 || c1.m_Pole != 1;
         float distance = (c0.m_Position - c1.m_Position).magnitude;
         float target = c0.GetBoundingSphereRadius(isRepulsive) + c1.GetBoundingSphereRadius(isRepulsive);
         if (distance > target)
@@ -195,7 +195,7 @@ public static class GeometryHelper
 
     public static bool SeparatingAxis(Polygon p0, Circle c0)
     {
-        bool isRepulsive = p0.m_Pole == 0 || c0.m_Pole == 0;
+        bool isRepulsive = p0.m_Pole != 1 || c0.m_Pole != 1;
 
         float distance = (p0.m_Position - c0.m_Position).magnitude;
         if (distance > p0.GetBoundingSphereRadius(isRepulsive) + c0.GetBoundingSphereRadius(isRepulsive))
@@ -265,7 +265,7 @@ public static class GeometryHelper
 
     public static bool SeparatingAxis(Polygon p0,Polygon p1)
     {
-        bool isRepulsive = p0.m_Pole == 0 || p1.m_Pole == 0;
+        bool isRepulsive = p0.m_Pole != 1 ||  p1.m_Pole != 1;
 
         float distance = (p0.m_Position - p1.m_Position).magnitude;
         if(distance > p0.GetBoundingSphereRadius(isRepulsive) + p1.GetBoundingSphereRadius(isRepulsive))
