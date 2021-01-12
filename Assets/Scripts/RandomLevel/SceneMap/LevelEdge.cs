@@ -37,7 +37,7 @@ namespace DragonSlay.RandomLevel.Scene
             //m_Position += 0.1f * Vector3.Cross(m_Up, m_Right);
             //m_Start = Vector2.zero;
             //m_End = endPos - startPos;
-            FillBezier2MidPoint(start,end, shapeList, 100);
+            //FillBezier2MidPoint(start,end, shapeList, 100);
 
             //Vector2[] mainMidPoints = new Vector2[1] { new Vector2(m_Start.x, m_End.y) };
             //float RandomX = Random.Range(0, m_End.x);
@@ -52,6 +52,7 @@ namespace DragonSlay.RandomLevel.Scene
             //}
 
             //FillPolyLineMidPoint(start, end, shapeList, 100, mainMidPoints);
+            FillPolyLineMidPoint(start, end, shapeList);
         }
 
         public LevelEdge(UEdge2D data,float width)
@@ -440,7 +441,7 @@ namespace DragonSlay.RandomLevel.Scene
                         }
                     }
 
-                    float sphereDistance = shape.GetBoundingSphereRadius() + m_EdgeWidth + 1;
+                    float sphereDistance = shape.GetBoundingSphereRadius() + m_EdgeWidth + 5;
                     if (Vector2.Distance(midPoint, positionOffset) < sphereDistance)
                     {
                         midpoints[j] = positionOffset + (midPoint - positionOffset).normalized * sphereDistance;
@@ -451,6 +452,125 @@ namespace DragonSlay.RandomLevel.Scene
             }
 
             return collsionShape.Count;
+        }
+
+        void FillPolyLineMidPoint(Shape start,Shape end,List<Shape> shapeList)
+        {
+            Vector2 midPoint0 = new Vector2(m_Start.x, m_End.y);
+            Vector2 midPoint1 = new Vector2(m_End.x, m_Start.y);
+
+            Vector2[] midPoints0, midPoints1;
+            if (Vector2.Distance(midPoint0, m_Start) > 5 && Vector2.Distance(midPoint0, m_End) > 5)
+            {
+                midPoints0 = FillPolyLineMidPoint(start, end, shapeList, new Vector2[1] { midPoint0 });
+            }
+            else
+            {
+                midPoints0 = FillPolyLineMidPoint(start, end, shapeList, new Vector2[0]);
+            }
+
+            if (Vector2.Distance(midPoint1, m_Start) > 5 && Vector2.Distance(midPoint1, m_End) > 5)
+            {
+                midPoints1 = FillPolyLineMidPoint(start, end, shapeList, new Vector2[1] { midPoint1 });
+            }
+            else
+            {
+                midPoints1 = FillPolyLineMidPoint(start, end, shapeList, new Vector2[0]);
+            }
+
+            if(midPoints0.Length < midPoints1.Length)
+            {
+                m_MidPoints = midPoints0;
+            }
+            else
+            {
+                m_MidPoints = midPoints1;
+            }
+
+            List<Shape> circleList = new List<Shape>();
+            for(int i =0;i< shapeList.Count;i++)
+            {
+                if(shapeList[i] is Circle circle)
+                {
+                    circleList.Add(circle);
+                }
+            }
+
+            var midPoints = new Vector2[midPoints0.Length];
+            for(int i =0;i< midPoints0.Length;i++)
+            {
+                midPoints[i] = midPoints0[i];
+            }
+            int collsionCount0 =  MidPointSphereCollsion(start, end, circleList, midPoints);
+
+            midPoints = new Vector2[midPoints1.Length];
+            for (int i = 0; i < midPoints1.Length; i++)
+            {
+                midPoints[i] = midPoints1[i];
+            }
+            int collsionCount1 = MidPointSphereCollsion(start, end, circleList, midPoints);
+
+            int collsionCount = 0;
+            if(collsionCount0 + midPoints0.Length <= collsionCount1 + midPoints1.Length )
+            {
+                m_MidPoints = midPoints0;
+                collsionCount = collsionCount0;
+            }
+            else
+            {
+                m_MidPoints = midPoints1;
+                collsionCount = collsionCount1;
+            }
+
+            if (collsionCount > 0)
+            {
+                var mainPoints = new Vector2[m_MidPoints.Length + 2];
+                mainPoints[0] = m_Start; mainPoints[mainPoints.Length - 1] = m_End;
+                for(int i = 0;i< m_MidPoints.Length;i++)
+                {
+                    mainPoints[i + 1] = m_MidPoints[i];
+                }
+                //midPoints = FillPolyLineMidPoint(100, mainPoints);
+                //MidPointSphereCollsion(start, end, shapeList, midPoints);
+                //m_MidPoints = midPoints;
+                FillBezier2MidPoint(start,end,shapeList,100);
+            }
+        }
+
+        Vector2[] FillPolyLineMidPoint(Shape start, Shape end, List<Shape> shapeList, Vector2[] midMainPoints)
+        {
+            Vector2[] linePoints = new Vector2[midMainPoints.Length + 2];
+            Vector2 position2D = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up));
+            linePoints[0] = m_Start + position2D; linePoints[linePoints.Length - 1] = m_End + position2D;
+            for(int i =1;i< linePoints.Length-1;i++)
+            {
+                linePoints[i] = midMainPoints[i - 1] + position2D;
+            }
+
+            List<Polygon> polygonList = new List<Polygon>();
+            for(int i =0;i< shapeList.Count;i++)
+            {
+                var shape = shapeList[i];
+                if(shape == start || shape == end)
+                {
+                    continue;
+                }
+
+                if(shape is Polygon polygon)
+                {
+                    polygonList.Add(polygon);
+                }
+            }
+
+            var newLinePoints = GeometryHelper.LinePolygonIntersect(linePoints, polygonList.ToArray());
+
+            var res = new Vector2[newLinePoints.Length - 2];
+            for(int i =0;i< res.Length;i++)
+            {
+                res[i] = newLinePoints[i + 1] - position2D;
+            }
+
+            return res;
         }
 
         void FillPolyLineMidPoint(Shape start, Shape end, List<Shape> shapeList, int midPointCount,Vector2[] midMainPoints)

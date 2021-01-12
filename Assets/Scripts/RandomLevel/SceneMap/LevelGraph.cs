@@ -94,7 +94,7 @@ namespace DragonSlay.RandomLevel.Scene
             {
                 var pos = GetRandomPointInEllipse(m_Width, m_Height);
                 var rect = allRect[i];
-                int type = 0;// Random.Range(0, 2);
+                int type = Random.Range(0, 2);
                 LevelPanel levelPanel = null;
                 if (type == 0)
                 {
@@ -106,7 +106,7 @@ namespace DragonSlay.RandomLevel.Scene
                 }
                 levelPanel.GenerateMesh();
                 m_LevelMeshList.Add(levelPanel);
-                if(levelPanel.m_Acreage > m_RoomFilter)
+                if(rect.x * rect.y > m_RoomFilter)
                 {
                     m_PanelList.Add(levelPanel);
                 }

@@ -118,6 +118,7 @@ public class Polygon : Shape
 
 public static class GeometryHelper 
 {
+    #region SeparatingAxis
     public static float AttractStrength = 0.2f;
 
     public static bool SeparatingAxis(Shape s0, Shape s1)
@@ -467,4 +468,259 @@ public static class GeometryHelper
     {
         return Mathf.Abs(Mathf.Max(proj0.x, proj1.x) - Mathf.Min(proj0.y, proj1.y));
     }
+
+    #endregion
+
+    static float Cross(Vector2 v0, Vector2 v1)
+    {
+        return v0.x * v1.y - v1.x * v0.y;
+    }
+
+    /// <summary>
+    /// 两条线段是否相交
+    /// </summary>
+    /// <param name="a">线0的x</param>
+    /// <param name="b">线0的y</param>
+    /// <param name="c">线1的x</param>
+    /// <param name="d">线1的y</param>
+    /// <returns></returns>
+    public static bool IsLineIntersect(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+    {
+        //排斥试验
+        if (Mathf.Max(a.x, b.x) < Mathf.Min(c.x, d.x))
+        {
+            return false;
+        }
+
+        if (Mathf.Min(a.x, b.x) > Mathf.Max(c.x, d.x))
+        {
+            return false;
+        }
+
+        if (Mathf.Max(a.y, b.y) < Mathf.Min(c.y, d.y))
+        {
+            return false;
+        }
+
+        if (Mathf.Min(a.y, b.y) > Mathf.Max(c.y, d.y))
+        {
+            return false;
+        }
+
+        //跨立试验
+        Vector2 ca = a - c;
+        Vector2 cd = d - c;
+        Vector2 cb = b - c;
+        Vector2 ac = c - a;
+        Vector2 ab = b - a;
+        Vector2 ad = d - a;
+
+        float cross_ca_cd = Cross(ca, cd);
+        float cross_cb_cd = Cross(cb, cd);
+        float cross_ac_ab = Cross(ac, ab);
+        float cross_ad_ab = Cross(ad, ab);
+
+        return (cross_ca_cd * cross_cb_cd <= 0 && cross_ac_ab * cross_ad_ab <= 0);
+    }
+
+    public static bool IsLinePolygonIntersect(Vector2 start,Vector2 end,Polygon polygon)
+    {
+        var boards = polygon.GetBordersPoints(true);
+        for (int i = 0; i < boards.Length; i++)
+        {
+            var p0 = boards[i];
+            var p1 = boards[(i + 1) % boards.Length];
+            if (IsLineIntersect(start, end, p0, p1))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static Vector2 LineIntersect(Vector2 a, Vector2 b,Vector2 c,Vector2 d)
+    {
+        Vector2 l1 = d - c;
+        float p0 = Mathf.Abs(Cross(l1, a - c));
+        float p1 = Mathf.Abs(Cross(l1, b - c));
+        float temp = p0 / (p0 + p1);
+        return a + (b - a) * temp;
+    }
+
+    public static Vector2[] OneLinePolygonIntersect(Vector2 start, Vector2 end, Polygon polygon)
+    {
+        List<Vector2> intersectPointList = new List<Vector2>();
+        var boards = polygon.GetBordersPoints(true);
+        for(int i =0;i< boards.Length;i++)
+        {
+            var p0 = boards[i];
+            var p1 = boards[(i + 1)% boards.Length];
+            if(IsLineIntersect(start,end,p0,p1))
+            {
+                intersectPointList.Add(LineIntersect(start, end, p0, p1));
+            }
+        }
+
+        intersectPointList.Sort((Vector2 a, Vector2 b) =>
+        {
+            var dis0 = Vector2.Distance(a, start);
+            var dis1 = Vector2.Distance(b, start);
+            if (dis0 < dis1) return -1;
+            else if (dis0 > dis1) return 1;
+            else return 0;
+        });
+
+        return intersectPointList.ToArray();
+    }
+
+    public static Vector2[] LinePolygonIntersect(Vector2[] linePoints,Polygon[] polygons)
+    {
+        List<Vector2> newLinePoints = new List<Vector2>();
+        List<Vector2> removePoints = new List<Vector2>();
+        bool isStartInPolygon = false;
+        Vector2 frontPoint = Vector2.zero;
+        for(int i = 0;i< linePoints.Length;i++)
+        {
+            newLinePoints.Add(linePoints[i]);
+        }
+
+        for (int i = 0; i < linePoints.Length -1; i++)
+        {
+            var start = linePoints[i];
+            var end = linePoints[i + 1];
+            List<Polygon> intersecetPolygons = new List<Polygon>();
+            for (int j = 0; j < polygons.Length; j++)
+            {
+                var polygon = polygons[j];
+                if (IsLinePolygonIntersect(start, end, polygon))
+                {
+                    intersecetPolygons.Add(polygon);
+                }
+            }
+
+            intersecetPolygons.Sort((Polygon a, Polygon b) =>
+            {
+                var dis0 = Vector2.Distance(a.m_Position, start);
+                var dis1 = Vector2.Distance(b.m_Position, start);
+                if (dis0 < dis1) return -1;
+                else if (dis0 > dis1) return 1;
+                else return 0;
+            });
+
+            List<Vector2> addPoints = new List<Vector2>();
+            for(int j =0;j< intersecetPolygons.Count;j++)
+            {
+                var polygon = intersecetPolygons[j];
+                var intersectPoints = OneLinePolygonIntersect(start, end, polygon);
+                if(intersectPoints.Length == 1)
+                {
+                    if(isStartInPolygon)
+                    {
+                        isStartInPolygon = false;
+                        var edgePoints = CaculateEdgePoints(frontPoint, intersectPoints[0], polygon);
+                        removePoints.Add(start);
+                        addPoints.AddRange(edgePoints);
+                    }
+                    else
+                    {
+                        isStartInPolygon = true;
+                        frontPoint = intersectPoints[0];
+                    }
+                }
+                else if(intersectPoints.Length == 2)
+                {
+                    var edgePoints = CaculateEdgePoints(intersectPoints[0], intersectPoints[1], polygon);
+                    addPoints.AddRange(edgePoints);
+                }
+            }
+
+            int startIndex = newLinePoints.IndexOf(start);
+            newLinePoints.InsertRange(startIndex + 1, addPoints);
+        }
+
+        for(int i = 0;i< removePoints.Count;i++)
+        {
+            var removePoint = removePoints[i];
+            if(newLinePoints.Contains(removePoint))
+            {
+                newLinePoints.Remove(removePoint);
+            }
+        }
+
+        return newLinePoints.ToArray();
+    }
+
+    static Vector2[] CaculateEdgePoints(Vector2 p0,Vector2 p1, Polygon polygon)
+    {
+        List<Vector2> leftPoints = new List<Vector2>();
+        List<Vector2> rightPoints = new List<Vector2>();
+
+        var boards = polygon.GetBordersPoints(true);
+        int p0Start = 0, p0End = 0, p1Start = 0, p1End = 0; 
+        for(int i =0;i< boards.Length;i++)
+        {
+            var start = boards[i];
+            var end = boards[(i + 1) % boards.Length];
+            if(IsPointInLine(start,end,p0))
+            {
+                p0Start = i;
+                p0End = (i + 1) % boards.Length;
+            }
+
+            if(IsPointInLine(start,end,p1))
+            {
+                p1Start = i;
+                p1End = (i + 1) % boards.Length;
+            }
+        }
+
+        if(p0Start == p1Start && p0End == p1End)
+        {
+            return new Vector2[2] { p0, p1 };
+        }
+
+        float distanceLeft = 0;
+        leftPoints.Add(p0);
+        for (int i = p0End; i < p0End + boards.Length; i++)
+        {
+            var point = boards[i % boards.Length];
+            leftPoints.Add(point);
+            distanceLeft += Vector2.Distance(leftPoints[leftPoints.Count - 1], leftPoints[leftPoints.Count - 2]);
+            if (i == p1Start)
+            {
+                leftPoints.Add(p1);
+                distanceLeft += Vector2.Distance(leftPoints[leftPoints.Count - 1], leftPoints[leftPoints.Count - 2]);
+                break;
+            }
+        }
+
+        float distanceRight = 0;
+        rightPoints.Add(p0);
+        for(int i = p0Start + boards.Length; i > p0Start;i--)
+        {
+            var point = boards[i % boards.Length];
+            rightPoints.Add(point);
+            distanceRight += Vector2.Distance(rightPoints[rightPoints.Count - 1], rightPoints[rightPoints.Count - 2]);
+            if (i % boards.Length == p1End)
+            {
+                rightPoints.Add(p1);
+                distanceRight += Vector2.Distance(rightPoints[rightPoints.Count - 1], rightPoints[rightPoints.Count - 2]);
+                break;
+            }
+        }
+
+        return distanceLeft < distanceRight ? leftPoints.ToArray() : rightPoints.ToArray();
+
+
+    }
+
+    public static bool IsPointInLine(Vector2 start,Vector2 end, Vector2 point)
+    {
+        var dir0 = (point - start).normalized;
+        var dir1 = (point - end).normalized;
+        return dir0 == -dir1;
+    }
+
+
 }
