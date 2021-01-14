@@ -10,6 +10,7 @@ namespace DragonSlay.RandomLevel.Scene
         Room,
         Corridor,
         Door,
+        Wall,
 
         Max
     }
@@ -23,9 +24,25 @@ namespace DragonSlay.RandomLevel.Scene
             m_CellTypeMask |= 1 << (int)type;
         }
 
+        public void OnlyMaskCell(SceneCellType type)
+        {
+            m_CellTypeMask = 1 << (int)type;
+        }
+
         public bool IsMaskCell(SceneCellType type)
         {
             return (m_CellTypeMask & 1 << (int)type) != 0;
+        }
+
+        public bool IsEqualMaskCell(SceneCellType[] types)
+        {
+            int mask = 0;
+            for(int i = 0;i< types.Length;i++)
+            {
+                mask |= 1 << (int)types[i];
+            }
+
+            return m_CellTypeMask == mask;
         }
     }
 }

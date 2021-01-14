@@ -15,6 +15,8 @@ namespace DragonSlay.RandomLevel.Scene
     {
         public Vector2 m_PanelPosition;
 
+        public float m_RotateAngle = 0;
+
         public Vector2 m_Center;
 
         public float m_Acreage;
@@ -23,6 +25,13 @@ namespace DragonSlay.RandomLevel.Scene
 
         public abstract void GenerateMesh();
 
+        public void RotateBorders()
+        {
+            for (int i = 0; i < m_Borders.Length; i++)
+            {
+                m_Borders[i] = GeometryHelper.RotateAroundPoint(m_Center, m_Borders[i], m_RotateAngle);
+            }
+        }
 
         public void FillMeshData()
         {

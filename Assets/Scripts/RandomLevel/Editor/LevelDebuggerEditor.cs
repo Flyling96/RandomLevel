@@ -34,6 +34,11 @@ namespace DragonSlay.RandomLevel.Scene
                 debugger.GenerateEdge();
             }
 
+            if(GUILayout.Button("GenerateDoor"))
+            {
+                debugger.GenerateDoor();
+            }
+
             if (GUILayout.Button("GenerateVoxel"))
             {
                 debugger.GenerateVoxel();

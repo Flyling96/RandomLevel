@@ -66,7 +66,7 @@ namespace DragonSlay.RandomLevel
                 var pos = positions[i];
                 var meshData = m_SceneLevel.m_LevelMeshList[i];
                 string goName;
-                if (meshData is LevelPanel levelPanel && m_SceneLevel.m_PanelList.Contains(levelPanel))
+                if (meshData is LevelPanel levelPanel && m_SceneLevel.m_RoomList.Contains(levelPanel))
                 {
                     goName = "Main Panel";
                 }
@@ -100,7 +100,7 @@ namespace DragonSlay.RandomLevel
                 var meshData = keyValue.Key;
                 var go = keyValue.Value;
 
-                if(!(meshData is LevelPanel levelPanel && m_SceneLevel.m_PanelList.Contains(levelPanel)))
+                if(!(meshData is LevelPanel levelPanel && m_SceneLevel.m_RoomList.Contains(levelPanel)))
                 {
                     removeKeys.Add(meshData);
                     if (Application.isPlaying)
@@ -145,6 +145,27 @@ namespace DragonSlay.RandomLevel
             }
         }
 
+        public void GenerateDoor()
+        {
+            m_SceneLevel.GenerateDoor();
+            Mesh[] meshes = new Mesh[m_SceneLevel.m_DoorList.Count];
+            Vector3[] positions = new Vector3[m_SceneLevel.m_DoorList.Count];
+            for (int i = 0; i < m_SceneLevel.m_DoorList.Count; i++)
+            {
+                meshes[i] = m_SceneLevel.m_DoorList[i].ConvertMesh();
+                positions[i] = m_SceneLevel.m_DoorList[i].m_Position + Vector3.up * 0.2f;
+            }
+
+            for (int i = 0; i < m_SceneLevel.m_DoorList.Count; i++)
+            {
+                var meshData = m_SceneLevel.m_DoorList[i];
+                var mesh = meshes[i];
+                var pos = positions[i];
+                m_MeshMaterial.SetColor("_Color", Color.white);
+                m_MeshGoDic.Add(meshData, CreateMeshGameObject(mesh, pos, "Door", m_MeshMaterial));
+            }
+        }
+
         Mesh m_VoxelMesh = null;
 
         public void GenerateVoxel()
@@ -161,7 +182,7 @@ namespace DragonSlay.RandomLevel
             m_VoxelMesh.colors = colors;
 
             var graph = CreateMeshGameObject(m_VoxelMesh, pos, "Graph", m_VoxelMeshMaterial);
-            graph.transform.position += Vector3.up * 0.2f;
+            graph.transform.position += Vector3.up * 0.3f;
 
         }
     

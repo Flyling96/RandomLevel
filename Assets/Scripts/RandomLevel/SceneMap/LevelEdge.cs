@@ -17,11 +17,16 @@ namespace DragonSlay.RandomLevel.Scene
         Vector2 m_Start;
         Vector2 m_End;
         Vector2[] m_MidPoints;
+        Shape m_StartShape;
+        Shape m_EndShape;
 
         float m_EdgeWidth;
 
         public LevelEdge(Shape start, Shape end, List<Shape> shapeList, float width)
         {
+            m_StartShape = start;
+            m_EndShape = end;
+
             m_Position = start.m_Position.x * m_Right + start.m_Position.y * m_Up;
             m_Position += 0.1f * Vector3.Cross(m_Up, m_Right);
             m_Start = Vector2.zero;
@@ -468,7 +473,7 @@ namespace DragonSlay.RandomLevel.Scene
             {
                 midPoints0 = FillPolyLineMidPoint(start, end, shapeList, new Vector2[0]);
             }
-
+            //midPoints0 = FillPolyLineMidPoint(start, end, shapeList, new Vector2[0]);
             if (Vector2.Distance(midPoint1, m_Start) > 5 && Vector2.Distance(midPoint1, m_End) > 5)
             {
                 midPoints1 = FillPolyLineMidPoint(start, end, shapeList, new Vector2[1] { midPoint1 });
@@ -477,8 +482,8 @@ namespace DragonSlay.RandomLevel.Scene
             {
                 midPoints1 = FillPolyLineMidPoint(start, end, shapeList, new Vector2[0]);
             }
-
-            if(midPoints0.Length < midPoints1.Length)
+            //midPoints1 = FillPolyLineMidPoint(start, end, shapeList, new Vector2[0]);
+            if (midPoints0.Length < midPoints1.Length)
             {
                 m_MidPoints = midPoints0;
             }
@@ -667,6 +672,90 @@ namespace DragonSlay.RandomLevel.Scene
             Vector2 p1p2 = (1 - t) * p1 + t * p2;
             Vector2 res = (1 - t) * p0p1 + t * p1p2;
             return res;
+        }
+        #endregion
+
+        #region GenerateDoor
+
+        public RectPanel[] GenerateDoor(float doorThinckness)
+        {
+            if(GeometryHelper.IsShapesIntersect(m_StartShape, m_EndShape,false))
+            {
+                return new RectPanel[0];
+            }
+
+            Vector2 position2D = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up));
+            Vector2[] mainPoints = new Vector2[m_MidPoints.Length + 2];
+            mainPoints[0] = m_Start + position2D; mainPoints[mainPoints.Length - 1] = m_End + position2D;
+            for (int i = 1; i < mainPoints.Length - 1; i++)
+            {
+                mainPoints[i] = m_MidPoints[i - 1] + position2D;
+            }
+
+            Vector2 startIntersect = Vector2.zero;
+            Vector2 startTengent = Vector2.zero;
+            Vector2 startEdgeTengent = Vector2.zero;
+            Vector2 endIntersect = Vector2.zero;
+            Vector2 endTengent = Vector2.zero;
+            Vector2 endEdgeTengent = Vector2.zero;
+
+            for(int i = 1; i< mainPoints.Length;i++)
+            {
+                var start = mainPoints[i - 1];
+                var end = mainPoints[i];
+                if (startIntersect == Vector2.zero)
+                {
+                    var intersects = GeometryHelper.OneLineShapeIntersect(start, end, m_StartShape,false);
+                    if (intersects.Length > 0)
+                    {
+                        startIntersect = intersects[0];
+                        startEdgeTengent = (end - start).normalized;
+                        startEdgeTengent = new Vector2(-startEdgeTengent.y, startEdgeTengent.x);
+                        var keyValue = GeometryHelper.CaculateShapeIntersectTangent(startIntersect,m_StartShape,false);
+                        if(keyValue.Item1)
+                        {
+                            startTengent = keyValue.Item2;
+                        }
+                    }
+                }
+                if(endIntersect == Vector2.zero)
+                {
+                    var intersects = GeometryHelper.OneLineShapeIntersect(start, end, m_EndShape, false);
+                    if(intersects.Length > 0)
+                    {
+                        endIntersect = intersects[0];
+                        endEdgeTengent = (end - start).normalized;
+                        endEdgeTengent = new Vector2(-endEdgeTengent.y, endEdgeTengent.x);
+                        var keyValue = GeometryHelper.CaculateShapeIntersectTangent(endIntersect, m_EndShape, false);
+                        if (keyValue.Item1)
+                        {
+                            endTengent = keyValue.Item2;
+                        }
+                    }
+                }
+
+                if (startIntersect != Vector2.zero && endIntersect != Vector2.zero)
+                {
+                    break;
+                }
+            }
+
+            Vector2 right = Vector2.right;
+            float angle = GeometryHelper.Vector2Rangle(right,startTengent);
+            float dirTangentAngle = GeometryHelper.Vector2Rangle(startEdgeTengent, startTengent);
+            float width = m_EdgeWidth / Mathf.Cos(dirTangentAngle);
+            RectPanel[] result = new RectPanel[2];
+            Vector3 pos = startIntersect.x * m_Right + startIntersect.y * m_Up;
+            result[0] = new RectPanel(m_EdgeWidth * 2 + 2, doorThinckness, Vector2.zero, pos, angle);
+            result[0].GenerateMesh();
+
+            angle = GeometryHelper.Vector2Rangle(right, endTengent);
+            dirTangentAngle = GeometryHelper.Vector2Rangle(endEdgeTengent, endTengent);
+            width = m_EdgeWidth / Mathf.Sin(dirTangentAngle);
+            pos = endIntersect.x * m_Right + endIntersect.y * m_Up;
+            result[1] = new RectPanel(m_EdgeWidth * 2 + 2, doorThinckness, Vector2.zero, pos, angle);
+            result[1].GenerateMesh();
+            return result;
         }
         #endregion
 

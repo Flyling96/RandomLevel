@@ -121,6 +121,108 @@ public static class GeometryHelper
     #region SeparatingAxis
     public static float AttractStrength = 2.5f;
 
+    public static bool IsShapesIntersect(Shape s0,Shape s1, bool isSkinWidth = false)
+    {
+        if (s0 is Polygon p0)
+        {
+            if (s1 is Polygon p1)
+            {
+                return IsShapesIntersect(p0, p1, isSkinWidth);
+            }
+            else if (s1 is Circle c0)
+            {
+                return IsShapesIntersect(p0, c0, isSkinWidth);
+            }
+        }
+        else if (s0 is Circle c0)
+        {
+            if (s1 is Polygon p1)
+            {
+                return IsShapesIntersect(p1, c0, isSkinWidth);
+            }
+            else if (s1 is Circle c1)
+            {
+                return IsShapesIntersect(c0, c1, isSkinWidth);
+            }
+        }
+
+        return false;
+    }
+
+    public static bool IsShapesIntersect(Circle c0, Circle c1,bool isSkinWidth = false)
+    {
+        float distance = (c0.m_Position - c1.m_Position).magnitude;
+        float target = c0.GetBoundingSphereRadius(isSkinWidth) + c1.GetBoundingSphereRadius(isSkinWidth);
+        if (distance > target)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
+    public static bool IsShapesIntersect(Polygon p0, Circle c0, bool isSkinWidth = false)
+    {
+        float distance = (p0.m_Position - c0.m_Position).magnitude;
+        if (distance > p0.GetBoundingSphereRadius(isSkinWidth) + c0.GetBoundingSphereRadius(isSkinWidth))
+        {
+            return false;
+        }
+
+        Vector2[] axes0 = p0.GetAxes();
+        Vector2 p0Proj, c0Proj;
+        for (int i = 0; i < axes0.Length; i++)
+        {
+            p0Proj = GetProjection(p0, axes0[i], isSkinWidth);
+            c0Proj = GetProjection(c0, axes0[i], isSkinWidth);
+
+            if (!DoProjectionsOverlap(p0Proj, c0Proj))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static bool IsShapesIntersect(Polygon p0, Polygon p1, bool isSkinWidth = false)
+    {
+        float distance = (p0.m_Position - p1.m_Position).magnitude;
+        if (distance > p0.GetBoundingSphereRadius(isSkinWidth) + p1.GetBoundingSphereRadius(isSkinWidth))
+        {
+            return false;
+        }
+
+        Vector2[] axes0 = p0.GetAxes();
+        Vector2[] axes1 = p1.GetAxes();
+
+        Vector2 p0Proj;
+        Vector2 p1Proj;
+
+
+        for (int i = 0; i < axes0.Length; i++)
+        {
+            p0Proj = GetProjection(p0, axes0[i], isSkinWidth);
+            p1Proj = GetProjection(p1, axes0[i], isSkinWidth);
+            if (!DoProjectionsOverlap(p0Proj, p1Proj))
+            {
+                return false;
+            }
+        }
+
+        for (int i = 0; i < axes1.Length; i++)
+        {
+            p0Proj = GetProjection(p0, axes1[i], isSkinWidth);
+            p1Proj = GetProjection(p1, axes1[i], isSkinWidth);
+            if (!DoProjectionsOverlap(p0Proj, p1Proj))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static bool SeparatingAxis(Shape s0, Shape s1)
     {
         if (s0 is Polygon p0)
@@ -548,10 +650,71 @@ public static class GeometryHelper
         return a + (b - a) * temp;
     }
 
-    public static Vector2[] OneLinePolygonIntersect(Vector2 start, Vector2 end, Polygon polygon)
+    public static Vector2[] OneLineShapeIntersect(Vector2 start,Vector2 end, Shape shape, bool isSkinWidth = true)
+    {
+        if(shape is Polygon polygon)
+        {
+            return OneLinePolygonIntersect(start, end, polygon, isSkinWidth);
+        }
+        else if(shape is Circle circle)
+        {
+            return OneLineCircleIntersect(start, end, circle, isSkinWidth);
+        }
+
+        return new Vector2[0];
+    }
+
+    public static Vector2[] OneLineCircleIntersect(Vector2 start,Vector2 end,Circle circle, bool isSkinWidth = true)
+    {
+        float radius = circle.GetBoundingSphereRadius(isSkinWidth);
+
+        float A = (end.x - start.x) * (end.x - start.x) + (end.y - start.y) * (end.y - start.y);
+        float B = 2 * ((end.x - start.x) * (start.x - circle.m_Position.x) + (end.y - start.y) * (start.y - circle.m_Position.y));
+        float C = circle.m_Position.x * circle.m_Position.x + circle.m_Position.y * circle.m_Position.y + start.x * start.x
+            + start.y * start.y - 2 * (circle.m_Position.x * start.x + circle.m_Position.y * start.y) - radius * radius;
+
+        float T = B * B - 4 * A * C;
+        if (T < 0)
+        {
+            return new Vector2[0];
+        }
+        else if (T == 0)
+        {
+            float U = -B / (2 * A);
+            return new Vector2[1] { start + (end - start) * U };
+        }
+        else
+        {
+            float U0 = (-B + Mathf.Sqrt(T)) / (2 * A);
+            float U1 = (-B - Mathf.Sqrt(T)) / (2 * A);
+            if ((U0 < 0 || U0 > 1) && (U1 < 0 || U1 > 1))
+            {
+                return new Vector2[0];
+            }
+            else if(U0 >= 0 && U0 <= 1 && U1 >= 0 && U1 <= 1)
+            {
+                return new Vector2[2] { start + (end - start) * U0, start + (end - start) * U1 };
+            }
+            else if(U0 >= 0 && U0 <= 1)
+            {
+                return new Vector2[1] { start + (end - start) * U0 };
+            }
+            else if(U1 >= 0 && U1 <= 1)
+            {
+                return new Vector2[1] { start + (end - start) * U1 };
+            }
+            else
+            {
+                return new Vector2[0];
+            }
+        }
+
+    }
+
+    public static Vector2[] OneLinePolygonIntersect(Vector2 start, Vector2 end, Polygon polygon,bool isSkinWidth = true)
     {
         List<Vector2> intersectPointList = new List<Vector2>();
-        var boards = polygon.GetBordersPoints(true);
+        var boards = polygon.GetBordersPoints(isSkinWidth);
         for(int i =0;i< boards.Length;i++)
         {
             var p0 = boards[i];
@@ -572,6 +735,47 @@ public static class GeometryHelper
         });
 
         return intersectPointList.ToArray();
+    }
+
+    public static (bool, Vector2) CaculateShapeIntersectTangent(Vector2 intersect,Shape shape, bool isSkinWidth = true)
+    {
+        if (shape is Polygon polygon)
+        {
+            return CaculatePolygonIntersectTangent(intersect, polygon, isSkinWidth);
+        }
+        else if (shape is Circle circle)
+        {
+            return CaculateCircleIntersectTangent(intersect, circle, isSkinWidth);
+        }
+
+        return (false, Vector2.zero);
+    }
+
+    public static (bool,Vector2) CaculatePolygonIntersectTangent(Vector2 intersect,Polygon polygon, bool isSkinWidth = true)
+    {
+        var boards = polygon.GetBordersPoints(isSkinWidth);
+        for (int i = 0; i < boards.Length; i++)
+        {
+            var start = boards[i];
+            var end = boards[(i + 1) % boards.Length];
+            if (IsPointInLine(start, end, intersect))
+            {
+                return (true,(end - start).normalized);
+            }
+        }
+
+        return (false, Vector2.zero);
+    }
+
+    public static (bool,Vector2) CaculateCircleIntersectTangent(Vector2 intersect, Circle circle, bool isSkinWidth = true)
+    {
+        float radius = circle.GetBoundingSphereRadius(isSkinWidth);
+        if(Mathf.Abs(Vector2.Distance(circle.m_Position,intersect) - radius)< 0.001f)
+        {
+            var line = intersect - circle.m_Position;
+            return (true, new Vector2(-line.y, line.x).normalized);
+        }
+        return (false, Vector2.zero);
     }
 
     public static Vector2[] LinePolygonIntersect(Vector2[] linePoints,Polygon[] polygons)
@@ -717,10 +921,25 @@ public static class GeometryHelper
 
     public static bool IsPointInLine(Vector2 start,Vector2 end, Vector2 point)
     {
+        if (point == start || point == end) return true;
         var dir0 = (point - start).normalized;
         var dir1 = (point - end).normalized;
         return dir0 == -dir1;
     }
 
+
+    public static Vector2 RotateAroundPoint(Vector2 aroundPoint,Vector2 targetPoint,float angle)
+    {
+        Vector2 p0 = targetPoint - aroundPoint;
+        Vector2 p1 = new Vector2(Mathf.Cos(angle) * p0.x - Mathf.Sin(angle) * p0.y,
+            Mathf.Sin(angle) * p0.x + Mathf.Cos(angle) * p0.y);
+
+        return p1 + aroundPoint;
+    }
+
+    public static float Vector2Rangle(Vector2 a,Vector2 b)
+    {
+        return Mathf.Acos(a.x * b.x + a.y * b.y) * (Cross(a,b)> 0 ? 1 : -1);
+    }
 
 }
