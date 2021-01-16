@@ -14,5 +14,7 @@ namespace DragonSlay.RandomLevel.Gameplay
         public Vector3 m_Position;
 
         public HashSet<LevelCell> m_Cells = new HashSet<LevelCell>();
+
+        public LevelCell m_CenterCell = null;
     }
 }

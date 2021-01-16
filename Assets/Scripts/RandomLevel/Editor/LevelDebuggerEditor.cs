@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-namespace DragonSlay.RandomLevel.Scene
+namespace DragonSlay.RandomLevel.Scene.Editor
 {
     [CustomEditor(typeof(LevelDebugger))]
-    public class LevelDebuggerEditor : Editor
+    public class LevelDebuggerEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {

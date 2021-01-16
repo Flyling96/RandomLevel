@@ -75,12 +75,18 @@ namespace DragonSlay.RandomLevel
                     goName = "Minor Panel";
                 }
 
-                m_MeshMaterial.SetColor("_Color", Random.ColorHSV());
-                m_MeshGoDic.Add(meshData,CreateMeshGameObject(mesh,pos,goName, m_MeshMaterial));
+                var block = new MaterialPropertyBlock();
+                block.SetColor("_Color", Random.ColorHSV());
+                var go = CreateMeshGameObject(mesh, pos, goName, m_MeshMaterial, block);
+                var debugger = go.AddComponent<LevelPanelDebugger>();
+                debugger.m_Owner = m_SceneLevel;
+                debugger.m_Data = meshData as LevelPanel;
+
+                m_MeshGoDic.Add(meshData, go);
             }
         }
 
-        GameObject CreateMeshGameObject(Mesh mesh,Vector3 pos,string name, Material mat)
+        GameObject CreateMeshGameObject(Mesh mesh,Vector3 pos,string name, Material mat,MaterialPropertyBlock block)
         {
             GameObject go = new GameObject();
             go.name = name;
@@ -89,6 +95,7 @@ namespace DragonSlay.RandomLevel
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var render = go.AddComponent<MeshRenderer>();
             render.sharedMaterial = new Material(mat);
+            render.SetPropertyBlock(block);
             return go;
         }
 
@@ -140,8 +147,13 @@ namespace DragonSlay.RandomLevel
                 var meshData = m_SceneLevel.m_EdgeList[i];
                 var mesh = meshes[i];
                 var pos = positions[i];
-                m_MeshMaterial.SetColor("_Color", Color.red);
-                m_MeshGoDic.Add(meshData,CreateMeshGameObject(mesh, pos, "Edge", m_MeshMaterial));
+                var block = new MaterialPropertyBlock();
+                block.SetColor("_Color", Color.red);
+                var go = CreateMeshGameObject(mesh, pos, "Edge", m_MeshMaterial, block);
+                var debugger = go.AddComponent<LevelEdgeDebugger>();
+                debugger.m_Owner = m_SceneLevel;
+                debugger.m_Data = meshData;
+                m_MeshGoDic.Add(meshData, go);
             }
         }
 
@@ -161,8 +173,13 @@ namespace DragonSlay.RandomLevel
                 var meshData = m_SceneLevel.m_DoorList[i];
                 var mesh = meshes[i];
                 var pos = positions[i];
-                m_MeshMaterial.SetColor("_Color", Color.white);
-                m_MeshGoDic.Add(meshData, CreateMeshGameObject(mesh, pos, "Door", m_MeshMaterial));
+                var block = new MaterialPropertyBlock();
+                block.SetColor("_Color", Color.white);
+                var go = CreateMeshGameObject(mesh, pos, "Door", m_MeshMaterial, block);
+                var debugger = go.AddComponent<LevelPanelDebugger>();
+                debugger.m_Owner = m_SceneLevel;
+                debugger.m_Data = meshData;
+                m_MeshGoDic.Add(meshData, go);
             }
         }
 
@@ -180,8 +197,8 @@ namespace DragonSlay.RandomLevel
             time = Time.realtimeSinceStartup;
             var colors = m_SceneLevel.GenerateGraphColors();
             m_VoxelMesh.colors = colors;
-
-            var graph = CreateMeshGameObject(m_VoxelMesh, pos, "Graph", m_VoxelMeshMaterial);
+            var block = new MaterialPropertyBlock();
+            var graph = CreateMeshGameObject(m_VoxelMesh, pos, "Graph", m_VoxelMeshMaterial, block);
             graph.transform.position += Vector3.up * 0.3f;
 
         }
@@ -255,6 +272,7 @@ namespace DragonSlay.RandomLevel
                 return;
             }
             m_GameplayLevel.Init(m_SceneLevel);
+            RefreshColor();
         
         }
 

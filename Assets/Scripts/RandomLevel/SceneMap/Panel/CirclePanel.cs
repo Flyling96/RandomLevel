@@ -28,6 +28,10 @@ namespace DragonSlay.RandomLevel.Scene
                     Vector3 normal = Vector3.Cross(m_Right, m_Up); ;
                     m_Shape = new Circle(pos, m_Radius, 20);
                 }
+                else
+                {
+                    m_Shape.m_Position = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up));
+                }
                 return m_Shape;
             }
         }

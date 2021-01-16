@@ -289,14 +289,14 @@ namespace DragonSlay.RandomLevel.Scene
         Vector3 m_Right = new Vector3(1, 0, 0);
         Vector3 m_Up = new Vector3(0, 0, 1);
 
-        void GeneratePanelVoxel(LevelPanel panel,AABoundingBox2D aabb2D, SceneCellType type)
+        void GeneratePanelVoxel(LevelPanel panel, AABoundingBox2D aabb2D, SceneCellType type, bool onlyMask = false)
         {
             int minX = (int)aabb2D.m_Min.x;
             int minY = (int)aabb2D.m_Min.y;
             int maxX = (int)aabb2D.m_Max.x;
             int maxY = (int)aabb2D.m_Max.y;
 
-            bool isStart = false;
+            float centerDis = float.MaxValue;
             for (int y = minY; y < maxY + 1; y += m_CellSize)
             {
                 for (int x = minX; x < maxX + 1; x += m_CellSize)
@@ -313,17 +313,21 @@ namespace DragonSlay.RandomLevel.Scene
 
                     if (cell.IsInMesh(panel))
                     {
-                        cell.m_SceneCell.MaskCell(type);
-                        cell.m_GameplayCell.m_Walkable = true;
-                        if (!isStart)
+                        if (onlyMask)
                         {
-                            panel.m_CellStart = cell.m_Position;
-                            isStart = true;
+                            cell.m_SceneCell.OnlyMaskCell(type);
                         }
-                    }
-                    else
-                    {
-                        cell.m_SceneCell.MaskCell(SceneCellType.None);
+                        else
+                        {
+                            cell.m_SceneCell.MaskCell(type);
+                        }
+                        cell.m_GameplayCell.m_Walkable = true;
+                        float dis = Vector3.Distance(cell.m_Position, panel.m_Position);
+                        if (dis < centerDis)
+                        {
+                            centerDis = dis;
+                            panel.m_CellStart = cell.m_Position;
+                        }
                     }
                 }
             }
@@ -344,6 +348,18 @@ namespace DragonSlay.RandomLevel.Scene
                 Vector2 pos = room.CalculateVoxelMeshPos2D(m_CellSize);
                 var aabb2D = room.GetAABB2D(m_CellSize) + pos;
                 GeneratePanelVoxel(room, aabb2D,SceneCellType.Room);
+                aabb2DList.Add(aabb2D);
+            }
+
+            for (int i = 0; i < m_DoorList.Count; i++)
+            {
+#if UNITY_EDITOR
+                UnityEditor.EditorUtility.DisplayProgressBar("Voxel", string.Format("VoxelDoor : {0}/{1}", i, m_DoorList.Count), (float)i / m_DoorList.Count);
+#endif
+                var door = m_DoorList[i];
+                Vector2 pos = door.CalculateVoxelMeshPos2D(m_CellSize);
+                var aabb2D = door.GetAABB2D(m_CellSize) + pos;
+                GeneratePanelVoxel(door, aabb2D, SceneCellType.Door);
                 aabb2DList.Add(aabb2D);
             }
 
@@ -377,7 +393,7 @@ namespace DragonSlay.RandomLevel.Scene
                                 m_LevelCellDic.Add(cellPos, cell);
                             }
 
-                            if (cell.IsInMesh(edge))
+                            if (cell.IsInMesh(edge) && !cell.m_SceneCell.IsMaskCell(SceneCellType.Room))
                             {
                                 cell.m_SceneCell.MaskCell(SceneCellType.Corridor);
                                 cell.m_GameplayCell.m_Walkable = true;
@@ -387,27 +403,12 @@ namespace DragonSlay.RandomLevel.Scene
                                     isStart = true;
                                 }
                             }
-                            else
-                            {
-                                cell.m_SceneCell.MaskCell(SceneCellType.None);
-                            }
                         }
                     }
                     aabb2DList.Add(aabb2D);
                 }
             }
 
-            for (int i = 0; i < m_DoorList.Count; i++)
-            {
-#if UNITY_EDITOR
-                UnityEditor.EditorUtility.DisplayProgressBar("Voxel", string.Format("VoxelDoor : {0}/{1}", i, m_DoorList.Count), (float)i / m_DoorList.Count);
-#endif
-                var door = m_DoorList[i];
-                Vector2 pos = door.CalculateVoxelMeshPos2D(m_CellSize);
-                var aabb2D = door.GetAABB2D(m_CellSize) + pos;
-                GeneratePanelVoxel(door, aabb2D, SceneCellType.Door);
-                aabb2DList.Add(aabb2D);
-            }
 
 #if UNITY_EDITOR
             UnityEditor.EditorUtility.ClearProgressBar();
@@ -447,7 +448,7 @@ namespace DragonSlay.RandomLevel.Scene
 
         public Color[] GenerateGraphColors()
         {
-            Color[] tempColors = new Color[5] { Color.black ,Color.red, Color.green, Color.blue,Color.gray};
+            Color[] tempColors = new Color[4] {Color.red, Color.green, Color.blue,Color.gray};
             Color[] graphColors = new Color[m_LevelCellDic.Count * 5];
 
             foreach(var cell in m_LevelCellDic.Values)
@@ -484,6 +485,21 @@ namespace DragonSlay.RandomLevel.Scene
         public Vector3 CalculateVoxelMeshPos(LevelMesh mesh)
         {
             return mesh.CalculateVoxelMeshPos( m_CellSize);
+        }
+
+        public void RemovePanel(LevelPanel panel)
+        {
+            if (panel == null) return;
+
+            if(m_RoomList.Contains(panel))
+            {
+                m_RoomList.Remove(panel);
+            }
+
+            if (m_DoorList.Contains(panel))
+            {
+                m_DoorList.Remove(panel);
+            }
         }
 
 

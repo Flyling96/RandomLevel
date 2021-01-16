@@ -16,7 +16,9 @@ namespace DragonSlay.RandomLevel.Scene
 
         Vector2 m_Start;
         Vector2 m_End;
-        Vector2[] m_MidPoints;
+
+        public Vector2[] m_MidPoints;
+
         Shape m_StartShape;
         Shape m_EndShape;
 
@@ -57,7 +59,15 @@ namespace DragonSlay.RandomLevel.Scene
             //}
 
             //FillPolyLineMidPoint(start, end, shapeList, 100, mainMidPoints);
-            FillPolyLineMidPoint(start, end, shapeList);
+            int type = Random.Range(0, 4);
+            if (type > 0)
+            {
+                FillPolyLineMidPoint(start, end, shapeList);
+            }
+            else
+            {
+                FillBezier2MidPoint(start, end, shapeList, 100);
+            }
         }
 
         public LevelEdge(UEdge2D data,float width)
@@ -716,12 +726,19 @@ namespace DragonSlay.RandomLevel.Scene
                         {
                             startTengent = keyValue.Item2;
                         }
+                        break;
                     }
                 }
-                if(endIntersect == Vector2.zero)
+            }
+
+            for(int i = mainPoints.Length -1; i> 0;i--)
+            {
+                var start = mainPoints[i];
+                var end = mainPoints[i - 1];
+                if (endIntersect == Vector2.zero)
                 {
                     var intersects = GeometryHelper.OneLineShapeIntersect(start, end, m_EndShape, false);
-                    if(intersects.Length > 0)
+                    if (intersects.Length > 0)
                     {
                         endIntersect = intersects[0];
                         endEdgeTengent = (end - start).normalized;
@@ -731,12 +748,8 @@ namespace DragonSlay.RandomLevel.Scene
                         {
                             endTengent = keyValue.Item2;
                         }
+                        break;
                     }
-                }
-
-                if (startIntersect != Vector2.zero && endIntersect != Vector2.zero)
-                {
-                    break;
                 }
             }
 

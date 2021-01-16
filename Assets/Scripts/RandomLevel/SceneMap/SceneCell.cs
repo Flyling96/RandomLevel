@@ -6,7 +6,6 @@ namespace DragonSlay.RandomLevel.Scene
 {
     public enum SceneCellType
     {
-        None,
         Room,
         Corridor,
         Door,
@@ -22,6 +21,11 @@ namespace DragonSlay.RandomLevel.Scene
         public void MaskCell(SceneCellType type)
         {
             m_CellTypeMask |= 1 << (int)type;
+        }
+
+        public void RemoceMaskCell(SceneCellType type)
+        {
+            m_CellTypeMask &= 0 << (int)type;
         }
 
         public void OnlyMaskCell(SceneCellType type)
@@ -43,6 +47,14 @@ namespace DragonSlay.RandomLevel.Scene
             }
 
             return m_CellTypeMask == mask;
+        }
+
+        public bool IsNull
+        {
+            get
+            {
+                return m_CellTypeMask == 0;
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 namespace DragonSlay.RandomLevel.Scene
 {
@@ -9,7 +10,6 @@ namespace DragonSlay.RandomLevel.Scene
         Rect,
         Circle,
     }
-
 
     public abstract class LevelPanel:LevelMesh2D
     {
@@ -58,9 +58,13 @@ namespace DragonSlay.RandomLevel.Scene
             {
                 if (m_Shape == null)
                 {
-                    Vector2 pos = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up)); ;
+                    Vector2 pos = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up));
                     Vector3 normal = Vector3.Cross(m_Right, m_Up); ;
                     m_Shape = new Polygon(m_Center, m_Borders, pos, normal, 20);
+                }
+                else
+                {
+                    m_Shape.m_Position = new Vector2(Vector3.Dot(m_Position, m_Right), Vector3.Dot(m_Position, m_Up));
                 }
                 return m_Shape;
             }
