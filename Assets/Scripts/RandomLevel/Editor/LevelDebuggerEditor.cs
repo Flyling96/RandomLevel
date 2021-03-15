@@ -65,6 +65,11 @@ namespace DragonSlay.RandomLevel.Scene.Editor
             {
                 debugger.TempRefreshColor();
             }
+            if(GUILayout.Button("GrahamScan"))
+            {
+                debugger.GrahamScan();
+            }
+
         }
 
         private void OnSceneGUI()

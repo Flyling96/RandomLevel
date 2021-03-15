@@ -221,6 +221,29 @@ namespace DragonSlay.RandomLevel
             }
         }
 
+        public void GrahamScan()
+        {
+            var points = new Vector2[m_SceneLevel.m_RoomList.Count];
+            for(int i =0;i< points.Length; i++)
+            {
+                points[i] = m_SceneLevel.m_RoomList[i].m_PanelPosition;
+            }
+
+            var data = GeometryHelper.CaculatePointsBoundingSphere2D(points);
+            if(data.Item2 > 0)
+            {
+                CirclePanel panel = new CirclePanel(data.Item2, Vector2.zero,new Vector3(data.Item1.x,0,data.Item1.y));
+                panel.GenerateMesh();
+                Mesh mesh = panel.ConvertMesh();
+                var block = new MaterialPropertyBlock();
+                block.SetColor("_Color", Random.ColorHSV());
+                var go = CreateMeshGameObject(mesh, new Vector3(data.Item1.x, 0, data.Item1.y), "GrahamScan", m_MeshMaterial, block);
+                var debugger = go.AddComponent<LevelPanelDebugger>();
+                debugger.m_Owner = m_SceneLevel;
+                debugger.m_Data = panel as LevelPanel;
+            }
+        }
+
         public void RefreshColor()
         {
             var colors = m_SceneLevel.GenerateGraphColors();

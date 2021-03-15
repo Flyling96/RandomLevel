@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -30,7 +31,7 @@ public class Circle: Shape
         m_Position = pos;
         m_Radius = radius;
         m_SkinWidth = skinWidth;
-        m_Pole = Random.Range(0, 500) % 3;
+        m_Pole = UnityEngine.Random.Range(0, 500) % 3;
     }
 
     public override float GetBoundingSphereRadius(bool isSkinWidth = false)
@@ -66,7 +67,7 @@ public class Polygon : Shape
         }
         m_Position = position;
         m_Normal = normal;
-        m_Pole = Random.Range(0, 500) % 3;
+        m_Pole = UnityEngine.Random.Range(0, 500) % 3;
     }
 
     public void Move(Vector2 movePos)
@@ -115,8 +116,20 @@ public class Polygon : Shape
     }
 }
 
+public struct Triangle
+{
+    public Vector2 p0, p1, p2;
 
-public static class GeometryHelper 
+    public Triangle(Vector2 t0,Vector2 t1,Vector2 t2)
+    {
+        p0 = t0;
+        p1 = t1;
+        p2 = t2;
+    }
+}
+
+
+public class GeometryHelper 
 {
     #region SeparatingAxis
     public static float AttractStrength = 2.5f;
@@ -941,5 +954,181 @@ public static class GeometryHelper
     {
         return Mathf.Acos(a.x * b.x + a.y * b.y) * (Cross(a,b)> 0 ? 1 : -1);
     }
+
+    #region ConvexHull
+    //凸包生成
+
+    public static Vector2[] GrahamScan(Vector2[] points)
+    {
+        Vector2 p0 = Vector2.zero; ;
+        List<Vector2> pointList = new List<Vector2>();
+        float minY = float.MaxValue;
+        for(int i =0;i < points.Length;i++)
+        {
+            if (points[i].y < minY)
+            {
+                p0 = points[i];
+                minY = points[i].y;
+            }
+            pointList.Add(points[i]);
+        }
+
+        pointList.Sort(
+           (Vector2 a, Vector2 b) =>
+           {
+               if (a == p0)
+               {
+                   return -1;
+               }
+               if( b == p0)
+               {
+                   return 1;
+               }
+
+               Vector2 dir0 = (a - p0).normalized;
+               Vector2 dir1 = (b - p0).normalized;
+               Vector2 xAxis = new Vector2(1, 0);
+
+               float dot0 = Vector2.Dot(xAxis, dir0);
+               float dot1 = Vector2.Dot(xAxis, dir1);
+
+               return dot0 >= dot1 ? -1 : 1;
+           }
+        );
+
+        
+        for(int i = pointList.Count - 2; i > 0; i--)
+        {
+            var p1 = pointList[i + 1];
+            var p2 = pointList[i];
+
+            var dir1 = p1 - p0;
+            var dir2 = p2 - p0;
+            if(dir1.normalized == dir2.normalized)
+            {
+                if (dir1.magnitude > dir2.magnitude)
+                {
+                    pointList.RemoveAt(i);
+                }
+                else
+                {
+                    pointList.RemoveAt(i + 1);
+                }
+            }
+
+        }
+        if(pointList.Count < 3)
+        {
+            return new Vector2[0];
+        }
+
+        Stack<Vector2> pointStack = new Stack<Vector2>();
+        Stack<Vector2> prePointStack = new Stack<Vector2>();
+        pointStack.Push(p0);
+        pointStack.Push(pointList[1]);
+        prePointStack.Push(p0);
+
+        for (int i = 2;i < pointList.Count;i++)
+        {
+            var prePoint = prePointStack.Peek();
+            var p1 = pointStack.Peek();
+            var p2 = pointList[i];
+            var dir1 = p1 - prePoint;
+            var dir2 = p2 - prePoint;
+            float cross = Cross(dir1, dir2);
+
+            if(cross > 0)
+            {
+                pointStack.Push(p2);
+                prePointStack.Push(p1);
+            }
+            else
+            {
+                while (prePointStack.Count > 0)
+                {
+                    pointStack.Pop();
+                    prePointStack.Pop();
+                    p1 = pointStack.Peek();
+                    prePoint = prePointStack.Peek();
+
+                    dir1 = p1 - prePoint;
+                    dir2 = p2 - prePoint;
+                    cross = Cross(dir1, dir2);
+
+                    if (cross > 0)
+                    {
+                        pointStack.Push(p2);
+                        prePointStack.Push(p1);
+                        break;
+                    }
+                }
+            }
+        }
+
+        pointList.Clear();
+        while(pointStack.Count > 0)
+        {
+            pointList.Add(pointStack.Pop());
+        }
+
+        return pointList.ToArray();
+      
+    }
+
+    public static float TriangleArea(Vector2 p0, Vector2 p1, Vector2 p2)
+    {
+        float area = 0;
+        area = p0.x * p1.y + p1.x * p2.y + p2.x * p0.y - p1.x * p0.y - p2.x * p1.y - p0.x * p2.y;
+        return area / 2;
+    }
+
+    public static (Vector2,float)CaculatePointsBoundingSphere2D(Vector2[] points)
+    {
+        if(points.Length < 2)
+        {
+            return (Vector2.zero, 0);
+        }
+
+        Vector2[] convexHullPoints = GrahamScan(points);
+
+        if(convexHullPoints.Length < 2)
+        {
+            return (Vector2.zero, 0);
+        }
+
+        float sum_x, sum_y, sum_area, area;
+        sum_x = sum_y = sum_area = 0;
+        var p0 = convexHullPoints[0];
+        var p1 = convexHullPoints[1];
+
+        for(int i =2;i< convexHullPoints.Length;i++)
+        {
+            var p2 = convexHullPoints[i];
+            area = TriangleArea(p0, p1, p2);
+            sum_area += area;
+            sum_x += (p0.x + p1.x + p2.x) * area;
+            sum_y += (p0.y + p1.y + p2.y) * area;
+            p1 = p2;
+        }
+
+        Vector2 center = new Vector2(sum_x / sum_area / 3, sum_y / sum_area / 3);
+
+        float radius = 0;
+        for(int i =0;i< convexHullPoints.Length;i++)
+        {
+            var dis = Vector2.Distance(center, convexHullPoints[i]);
+            if(dis > radius)
+            {
+                radius = dis;
+            }
+        }
+
+        return (center, radius);
+
+
+    }
+
+
+    #endregion
 
 }
