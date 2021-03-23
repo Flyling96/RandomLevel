@@ -11,6 +11,7 @@ namespace DragonSlay.Route
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
+            var debugger = target as RouteDebugger;
             //if(GUILayout.Button("Start"))
             //{
 
@@ -21,11 +22,16 @@ namespace DragonSlay.Route
             //{
 
             //}
+
+            if (GUILayout.Button("ConvertMesh"))
+            {
+                debugger.ConvertMesh();
+            }
         }
 
         //void SetRoutePointList(SerializedProperty routeProperty)
         //{
-            
+
         //}
 
     }

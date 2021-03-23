@@ -11,6 +11,19 @@ namespace DragonSlay.Route
     {
         public Route m_Route = null;
 
+        public Route Route
+        {
+            get
+            {
+                if (m_Route == null)
+                {
+                    m_Route = new Route(transform.position, transform.rotation);
+                }
+
+                return m_Route;
+            }
+        }
+
         bool m_EditStart = false;
 
         private void Awake()
@@ -30,12 +43,16 @@ namespace DragonSlay.Route
 
         private void Update()
         {
-            if(m_Route == null)
-            {
-                m_Route = new Route(transform.position, transform.rotation);
-            }
+            Route.UpdateTransform(transform.position, transform.rotation);
+        }
 
-            m_Route.UpdateTransform(transform.position, transform.rotation);
+        public void ConvertMesh()
+        {
+            var mesh = Route.ConvertToMesh();
+            if(mesh != null)
+            {
+                GetComponent<MeshFilter>().sharedMesh = mesh;
+            }
         }
     }
 }
