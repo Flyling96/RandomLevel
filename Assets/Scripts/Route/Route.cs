@@ -187,15 +187,14 @@ namespace DragonSlay.Route
 
         Vector3[,] CaculateCylinderPoints()
         {
-            List<(Matrix4x4,float)> pointCircleInfoList = new List<(Matrix4x4, float)>();
+            List<(Vector3,Vector3,Vector3,float)> pointCircleInfoList = new List<(Vector3, Vector3, Vector3, float)>();
             float radius = 3;
             int circlePointCount = 20;
 
             //Quaternion quaternion = Quaternion.FromToRotation(Vector3.up, new Vector3(1, 1, 0));
-            Quaternion quaternion = Quaternion.FromToRotation(Vector3.up, Vector3.up);
-            Vector3 up = quaternion * Vector3.up ;
-            Vector3 right = quaternion * Vector3.right;
-            Vector3 forward = quaternion * Vector3.forward;
+            //Quaternion quaternion = Quaternion.FromToRotation(Vector3.up, Vector3.up);
+            Vector3 up =  Vector3.up ;
+            Vector3 right =  Vector3.right;
 
             for (int i = 0; i < m_RealRoutePoints.Count; i++)
             {
@@ -205,13 +204,13 @@ namespace DragonSlay.Route
                 {
                     pos0 = m_RealRoutePoints[i];
                     pos1 = m_RealRoutePoints[i + 1];
-                    dir = (pos1 - pos0).normalized;
+                    dir = -(pos1 - pos0).normalized;
                 }
                 else if( i == m_RealRoutePoints.Count - 1)
                 {
                     pos0 = m_RealRoutePoints[i];
                     pos1 = m_RealRoutePoints[i - 1];
-                    dir = (pos0 - pos1).normalized;
+                    dir = -(pos0 - pos1).normalized;
                 }
                 else
                 {
@@ -221,10 +220,10 @@ namespace DragonSlay.Route
                     var dir0 = (pos0 - pos2).normalized;
                     var dir1 = (pos1 - pos0).normalized;
                     var keyValue = CalculatePlanePerpendicular(dir0, dir1, pos0);
-                    dir = -keyValue.Item1;
+                    dir = keyValue.Item1;
                     radiusSize = Mathf.Clamp(keyValue.Item2,1,3);
                 }
-                Quaternion rot;
+                //Quaternion rot;
                 ////当dir与Vector3.up 完全反向时 Quaternion.FromToRotation 会得到 (1,0,0,0);
                 //if (dir == Vector3.down)
                 //{
@@ -236,9 +235,12 @@ namespace DragonSlay.Route
                 //}
 
                 //rot = Quaternion.FromToRotation(Vector3.up, dir);
-                rot = Quaternion.FromToRotation(up, dir);
-                Matrix4x4 pointTRS = Matrix4x4.TRS(pos0, rot, Vector3.one);
-                pointCircleInfoList.Add((pointTRS, radiusSize));
+                //rot = Quaternion.FromToRotation(up, dir);
+                //Matrix4x4 pointTRS = Matrix4x4.TRS(pos0, rot, Vector3.one);
+
+                right = Vector3.Cross(up, dir).normalized;
+                up = Vector3.Cross(dir, right).normalized;
+                pointCircleInfoList.Add((pos0,up,right, radiusSize));
 
 
             }
@@ -246,16 +248,18 @@ namespace DragonSlay.Route
             Vector3[,] cylinderPoints = new Vector3[m_RealRoutePoints.Count, circlePointCount];
             for (int j = 0; j < pointCircleInfoList.Count; j++)
             {
-                var trs = pointCircleInfoList[j].Item1;
-                var radiusSize = pointCircleInfoList[j].Item2;
+                var pos = pointCircleInfoList[j].Item1;
+                up = pointCircleInfoList[j].Item2;
+                right = pointCircleInfoList[j].Item3;
+                var radiusSize = pointCircleInfoList[j].Item4;
                 for (int i = 0; i < circlePointCount; i++)
                 {
                     var rad = 2 * Mathf.PI * i / circlePointCount;
                     var point = new Vector3(Mathf.Sin(rad) * radius * radiusSize, 0, Mathf.Cos(rad) * radius * radiusSize);
 
                     point = Mathf.Sin(rad) * radius * radiusSize * right +
-                        Mathf.Cos(rad) * radius * radiusSize * forward;
-                    point = trs.MultiplyPoint(point);
+                        Mathf.Cos(rad) * radius * radiusSize * up;
+                    point += pos;
                     cylinderPoints[j, i] = point;
                 }
             }
