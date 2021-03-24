@@ -185,11 +185,13 @@ namespace DragonSlay.Route
             return (targetDir, offsetDir.magnitude);
         }
 
+        public float radius = 3;
+        public int circlePointCount = 20;
+        List<int> cylinderTriangleStartList = new List<int>();
+
         Vector3[,] CaculateCylinderPoints()
         {
             List<(Vector3,Vector3,Vector3,float)> pointCircleInfoList = new List<(Vector3, Vector3, Vector3, float)>();
-            float radius = 3;
-            int circlePointCount = 20;
 
             //Quaternion quaternion = Quaternion.FromToRotation(Vector3.up, new Vector3(1, 1, 0));
             //Quaternion quaternion = Quaternion.FromToRotation(Vector3.up, Vector3.up);
@@ -267,6 +269,11 @@ namespace DragonSlay.Route
             return cylinderPoints;
         }
 
+        [SerializeField,HideInInspector]
+        List<Vector3> vertexList = new List<Vector3>();
+        [SerializeField,HideInInspector]
+        List<int> triangleList = new List<int>();
+
         public Mesh ConvertToMesh()
         {
             Bezier2Point();
@@ -277,11 +284,9 @@ namespace DragonSlay.Route
 
             var cylinderPoints = CaculateCylinderPoints();
 
-            int circlePointCount = 20;
-
-            List<Vector3> vertexList = new List<Vector3>();
             List<Vector3> normalList = new List<Vector3>();
-            List<int> triangleList = new List<int>();
+            vertexList.Clear();
+            triangleList.Clear();
             for (int j = 0; j < m_RealRoutePoints.Count; j++)
             {
                 var point = m_RealRoutePoints[j];
@@ -294,9 +299,12 @@ namespace DragonSlay.Route
                 }
             }
 
-            for(int j = 1; j < m_RealRoutePoints.Count;j++)
+            cylinderTriangleStartList.Clear();
+            cylinderTriangleStartList.Add(0);
+            for (int j = 1; j < m_RealRoutePoints.Count;j++)
             {
-                for(int i =0; i < circlePointCount;i++)
+                cylinderTriangleStartList.Add(j * 6 * circlePointCount);
+                for (int i =0; i < circlePointCount;i++)
                 {
                     var index0 = (j - 1) * circlePointCount + i;
                     var index1 = (j - 1) * circlePointCount + (i + 1) % circlePointCount;// cylinderPoints[j - 1, (i + 1) % circlePointCount];
@@ -317,5 +325,49 @@ namespace DragonSlay.Route
             mesh.triangles = triangleList.ToArray();
             return mesh;
         }
+
+        #region Hole
+        public int m_HolePointIndex = 5;
+        public float m_HolePointPro = 0.5f;
+        public float m_HoleDir = Mathf.PI / 2;
+
+        public Vector3[] CaculateHolePoints()
+        {
+            if(m_RealRoutePoints.Count <= m_HolePointIndex + 1)
+            {
+                return new Vector3[0];
+            }
+
+            Vector3[] res = new Vector3[circlePointCount + 1];
+
+            var p0 = m_RealRoutePoints[m_HolePointIndex];
+            var p1 = m_RealRoutePoints[m_HolePointIndex + 1];
+            var dir = p1 - p0;
+
+            float centerPro = m_HoleDir / (2 * Mathf.PI);
+            int centerIndex = (int)(centerPro * circlePointCount);
+            float centerCirclePointPro = centerPro * circlePointCount - centerIndex;
+
+            int index = m_HolePointIndex * circlePointCount;
+            var p2 = vertexList[index + centerIndex];
+            var p3 = vertexList[index + (centerIndex + 1) % circlePointCount];
+            index = (m_HolePointIndex + 1) * circlePointCount;
+            var p4 = vertexList[index + centerIndex];
+            var p5 = vertexList[index + (centerIndex + 1) % circlePointCount];
+
+            var centerPos = Vector3.Lerp(Vector3.Lerp(p2, p3, centerCirclePointPro), Vector3.Lerp(p4, p5, centerCirclePointPro), m_HolePointPro);
+
+            Debug.Log(centerPos);
+
+            return null;
+
+
+
+
+        }
+        #endregion
+
+
     }
+
 }

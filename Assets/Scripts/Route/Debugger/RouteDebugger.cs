@@ -54,5 +54,10 @@ namespace DragonSlay.Route
                 GetComponent<MeshFilter>().sharedMesh = mesh;
             }
         }
+
+        public void CaculateHolePoints()
+        {
+            Route.CaculateHolePoints();
+        }
     }
 }
