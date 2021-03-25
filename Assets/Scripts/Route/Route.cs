@@ -187,7 +187,6 @@ namespace DragonSlay.Route
 
         public float radius = 3;
         public int circlePointCount = 20;
-        List<int> cylinderTriangleStartList = new List<int>();
 
         Vector3[,] CaculateCylinderPoints()
         {
@@ -257,9 +256,9 @@ namespace DragonSlay.Route
                 for (int i = 0; i < circlePointCount; i++)
                 {
                     var rad = 2 * Mathf.PI * i / circlePointCount;
-                    var point = new Vector3(Mathf.Sin(rad) * radius * radiusSize, 0, Mathf.Cos(rad) * radius * radiusSize);
+                    //var point = new Vector3(Mathf.Sin(rad) * radius * radiusSize, 0, Mathf.Cos(rad) * radius * radiusSize);
 
-                    point = Mathf.Sin(rad) * radius * radiusSize * right +
+                    var point = Mathf.Sin(rad) * radius * radiusSize * right +
                         Mathf.Cos(rad) * radius * radiusSize * up;
                     point += pos;
                     cylinderPoints[j, i] = point;
@@ -272,7 +271,7 @@ namespace DragonSlay.Route
         [SerializeField,HideInInspector]
         List<Vector3> vertexList = new List<Vector3>();
         [SerializeField,HideInInspector]
-        List<int> triangleList = new List<int>();
+        Dictionary<int,List<int>> triangleDic = new Dictionary<int, List<int>>();
 
         public Mesh ConvertToMesh()
         {
@@ -286,7 +285,6 @@ namespace DragonSlay.Route
 
             List<Vector3> normalList = new List<Vector3>();
             vertexList.Clear();
-            triangleList.Clear();
             for (int j = 0; j < m_RealRoutePoints.Count; j++)
             {
                 var point = m_RealRoutePoints[j];
@@ -299,11 +297,15 @@ namespace DragonSlay.Route
                 }
             }
 
-            cylinderTriangleStartList.Clear();
-            cylinderTriangleStartList.Add(0);
+            if(triangleDic == null)
+            {
+                triangleDic = new Dictionary<int, List<int>>();
+            }
+
+            triangleDic.Clear();
             for (int j = 1; j < m_RealRoutePoints.Count;j++)
             {
-                cylinderTriangleStartList.Add(j * 6 * circlePointCount);
+                List<int> triangleList = new List<int>();
                 for (int i =0; i < circlePointCount;i++)
                 {
                     var index0 = (j - 1) * circlePointCount + i;
@@ -317,12 +319,19 @@ namespace DragonSlay.Route
                     triangleList.Add(index3);
                     triangleList.Add(index2);
                 }
+                triangleDic.Add(j - 1, triangleList);
             }
 
             var mesh = new Mesh();
             mesh.vertices = vertexList.ToArray();
             mesh.normals = normalList.ToArray();
-            mesh.triangles = triangleList.ToArray();
+            List<int> triangles = new List<int>();
+            foreach(var list in triangleDic.Values)
+            {
+                triangles.AddRange(list);
+            }
+
+            mesh.triangles = triangles.ToArray();
             return mesh;
         }
 
@@ -342,26 +351,131 @@ namespace DragonSlay.Route
 
             var p0 = m_RealRoutePoints[m_HolePointIndex];
             var p1 = m_RealRoutePoints[m_HolePointIndex + 1];
-            var dir = p1 - p0;
 
             float centerPro = m_HoleDir / (2 * Mathf.PI);
             int centerIndex = (int)(centerPro * circlePointCount);
-            float centerCirclePointPro = centerPro * circlePointCount - centerIndex;
 
-            int index = m_HolePointIndex * circlePointCount;
-            var p2 = vertexList[index + centerIndex];
-            var p3 = vertexList[index + (centerIndex + 1) % circlePointCount];
-            index = (m_HolePointIndex + 1) * circlePointCount;
-            var p4 = vertexList[index + centerIndex];
-            var p5 = vertexList[index + (centerIndex + 1) % circlePointCount];
+            var p2 = vertexList[m_HolePointIndex * circlePointCount + centerIndex];
+            var p3 = vertexList[(m_HolePointIndex + 1) * circlePointCount + centerIndex];
 
-            var centerPos = Vector3.Lerp(Vector3.Lerp(p2, p3, centerCirclePointPro), Vector3.Lerp(p4, p5, centerCirclePointPro), m_HolePointPro);
+            var centerPos = Vector3.Lerp(p2,p3, m_HolePointPro);
+            var up = p2 - p0;
+
+            float[] dirValues = new float[circlePointCount / 4 + 1];
+            dirValues[0] = up.magnitude;
+            up = up.normalized;
+            for (int i = 1; i < circlePointCount / 4 + 1; i++)
+            {
+                var point = vertexList[m_HolePointIndex * circlePointCount + (centerIndex + i)% circlePointCount];
+                dirValues[i] = Vector3.Dot(point - p0, up);
+            }
+
+            var forward = (p1 - p0).normalized;
+            var right = Vector3.Cross(forward, up);
+
+            Vector3[] circlePoints = new Vector3[circlePointCount];
+
+            for(int i = 0; i < circlePointCount; i++)
+            {
+                var rad = 2 * Mathf.PI * i / circlePointCount;
+                int dirIndex = Mathf.Min(Mathf.Abs(i % (circlePointCount / 2) - 0), Mathf.Abs(i % (circlePointCount / 2) - circlePointCount / 2));
+                var point = Mathf.Sin(rad) * radius  * right +
+                        Mathf.Cos(rad) * radius  * forward + 
+                        (dirValues[dirIndex] - dirValues[0]) * up;
+
+                point += centerPos;
+                circlePoints[i] = point;
+            }
+
+
 
             Debug.Log(centerPos);
+        
 
-            return null;
+            return circlePoints;
 
 
+
+
+        }
+
+        public Mesh CreateHole()
+        {
+            Vector3[] holePoints = CaculateHolePoints();
+            if(holePoints == null || holePoints.Length < 1)
+            {
+                return null;
+            }
+
+            List<int> triangleList = new List<int>();
+            float centerPro = m_HoleDir / (2 * Mathf.PI);
+            int centerIndex = (int)(centerPro * circlePointCount);
+            int vertexStart = vertexList.Count;
+            int preCircleVertexStart = m_HolePointIndex * circlePointCount;
+            int proCircleVertexStart = preCircleVertexStart + circlePointCount;
+
+            int j = m_HolePointIndex + 1;
+            for (int i = - circlePointCount /4 ; i < circlePointCount / 4 ; i++)
+            {
+                var index0 = vertexStart + (i + circlePointCount) % circlePointCount;
+                var index1 = vertexStart + (i + 1 + circlePointCount) % circlePointCount;
+                var index2 = proCircleVertexStart + (centerIndex + i + circlePointCount)% circlePointCount;
+                var index3 = proCircleVertexStart + (centerIndex + i + 1 + circlePointCount) % circlePointCount;
+                triangleList.Add(index0);
+                triangleList.Add(index1);
+                triangleList.Add(index2);
+                triangleList.Add(index1);
+                triangleList.Add(index3);
+                triangleList.Add(index2);
+            }
+
+            for (int i = -circlePointCount / 4; i < circlePointCount / 4; i++)
+            {
+                var index0 = preCircleVertexStart + (centerIndex + i + circlePointCount) % circlePointCount;
+                var index1 = preCircleVertexStart + (centerIndex + i + 1 + circlePointCount) % circlePointCount;
+                var index2 = vertexStart + (circlePointCount / 2 - i) % circlePointCount;
+                var index3 = vertexStart + (circlePointCount / 2 - i - 1) % circlePointCount;
+                triangleList.Add(index0);
+                triangleList.Add(index1);
+                triangleList.Add(index2);
+                triangleList.Add(index1);
+                triangleList.Add(index3);
+                triangleList.Add(index2);
+            }
+
+            for (int i = circlePointCount / 4; i < circlePointCount * 3 / 4; i++)
+            {
+                var index0 = preCircleVertexStart + (centerIndex + i ) % circlePointCount;
+                var index1 = preCircleVertexStart + (centerIndex + i + 1 ) % circlePointCount;
+                var index2 = proCircleVertexStart + (centerIndex + i ) % circlePointCount;
+                var index3 = proCircleVertexStart + (centerIndex + i + 1 ) % circlePointCount;
+                triangleList.Add(index0);
+                triangleList.Add(index1);
+                triangleList.Add(index2);
+                triangleList.Add(index1);
+                triangleList.Add(index3);
+                triangleList.Add(index2);
+            }
+
+
+            for (int i =0;i < holePoints.Length;i++)
+            {
+                vertexList.Add(holePoints[i]);
+            }
+
+            triangleDic[m_HolePointIndex] = triangleList;
+
+            var mesh = new Mesh();
+            mesh.vertices = vertexList.ToArray();
+            //mesh.normals = normalList.ToArray();
+            List<int> triangles = new List<int>();
+            foreach (var list in triangleDic.Values)
+            {
+                triangles.AddRange(list);
+            }
+
+            mesh.triangles = triangles.ToArray();
+            return mesh;
 
 
         }
