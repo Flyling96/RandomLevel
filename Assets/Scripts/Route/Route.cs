@@ -34,7 +34,7 @@ namespace DragonSlay.Route
             }
         }
 
-        public List<RoutePoint> m_Points = new List<RoutePoint>();
+        List<RoutePoint> m_Points = new List<RoutePoint>();
 
 
         public Route(Vector3 pos,Quaternion rot)
@@ -44,10 +44,14 @@ namespace DragonSlay.Route
             m_RealRoutePoints = new List<Vector3>();
         }
 
+        public void ClearPoints()
+        {
+            m_Points.Clear();
+        }
+
         public void AddPoints(Vector3 pos)
         {
-            RoutePoint newPoint = new RoutePoint();
-            newPoint.m_LocalPos = Matrix4x4.Inverse(m_TRS).MultiplyPoint(pos);
+            RoutePoint newPoint = new RoutePoint(Matrix4x4.Inverse(m_TRS).MultiplyPoint(pos));
             m_Points.Add(newPoint);
         }
 
@@ -62,10 +66,30 @@ namespace DragonSlay.Route
             m_Points.Remove(target);
         }
 
-        public void Connect(RoutePoint p0,RoutePoint p1)
+        public void InsertPoint(RoutePoint start, RoutePoint end, RoutePoint point)
         {
-            p0.OnConnect(p1);
-            p1.OnConnect(p0);
+            DisconnectPoint(start, end);
+            ConnectPoint(start, point);
+            ConnectPoint(end, point);
+        }
+
+        void DisconnectPoint(RoutePoint p0, RoutePoint p1)
+        {
+            p0.OnDisconnect(p1);
+            p1.OnDisconnect(p0);
+        }
+
+        public void ConnectPoint(int startIndex,int endIndex)
+        {
+            var start = m_Points[startIndex];
+            var end = m_Points[endIndex];
+            ConnectPoint(start, end);
+        }
+
+        public void ConnectPoint(RoutePoint start, RoutePoint end)
+        {
+            start.OnConnect(end,false);
+            end.OnConnect(start,true);
         }
 
         public void OnBeforeSerialize()
@@ -75,15 +99,150 @@ namespace DragonSlay.Route
 
         public void OnAfterDeserialize()
         {
-            m_TRS = Matrix4x4.TRS(m_Position, m_Rotation, Vector3.zero);
+            m_TRS = Matrix4x4.TRS(m_Position, m_Rotation, Vector3.one);
             if (m_RealRoutePoints == null)
             {
                 m_RealRoutePoints = new List<Vector3>();
+            }
+
+            if(m_ComplateRoutePoints == null)
+            {
+                m_ComplateRoutePoints = new HashSet<RoutePoint>();
             }
         }
 
         List<Vector3> m_RealRoutePoints = new List<Vector3>();
 
+        HashSet<RoutePoint> m_ComplateRoutePoints = new HashSet<RoutePoint>();
+        public void AutoFillPoint()
+        {
+            m_ComplateRoutePoints.Clear();
+            for (int i = 0; i < m_Points.Count;i++)
+            {
+                var point = m_Points[i];
+                m_ComplateRoutePoints.Add(point);
+                if (point.IsFork)
+                {
+
+                }
+                else if(point.IsTurn)
+                {
+                    var pre = point.m_PrePoint;
+                    var pro = point.m_ProPoint;
+                    var dir0 = pre.m_LocalPos - point.m_LocalPos;
+                    var dir1 = pro.m_LocalPos - point.m_LocalPos;
+                    if(dir0.magnitude > radius)
+                    {
+                        var pos = point.m_LocalPos + dir0.normalized * radius;
+                        var p = new RoutePoint(pos);
+                        InsertPoint(pre, point, p);
+                        m_ComplateRoutePoints.Add(p);
+                    }
+                    if(dir1.magnitude > radius)
+                    {
+                        var pos = point.m_LocalPos + dir1.normalized * radius;
+                        var p = new RoutePoint(pos);
+                        InsertPoint(point, pro, p);
+                        m_ComplateRoutePoints.Add(p);
+                    }
+                }
+            }
+        }
+
+        List<RouteSubMesh> m_SubMeshList = new List<RouteSubMesh>();
+        public void CaculateSubMesh()
+        {
+            AutoFillPoint();
+
+            m_SubMeshList.Clear();
+            foreach(var point in m_ComplateRoutePoints)
+            {
+                if(point.IsStraight)
+                {
+                    var straight = CaculateRouteStraight(point);
+                    if(straight != null)
+                    {
+                        m_SubMeshList.Add(straight);
+                    }
+                }
+                else if(point.IsTurn)
+                {
+                    var curve = CaculateRouteCurve(point);
+                    if(curve != null)
+                    {
+                        m_SubMeshList.Add(curve);
+                    }
+                }
+
+            }
+        }
+
+        public Mesh ConvertSubMeshes()
+        {
+            CaculateSubMesh();
+
+            List<Vector3> vertexList = new List<Vector3>();
+            List<Vector3> normalList = new List<Vector3>();
+            List<int> triangleList = new List<int>();
+
+            for(int i =0;i < m_SubMeshList.Count;i++)
+            {
+                var subMesh = m_SubMeshList[i];
+                subMesh.CaculateMesh();
+                var meshData = subMesh.ConvertMesh(vertexList.Count);
+                vertexList.AddRange(meshData.m_VertexList);
+                normalList.AddRange(meshData.m_NormalList);
+                triangleList.AddRange(meshData.m_TriangleList);
+            }
+
+            Mesh mesh = new Mesh();
+            mesh.vertices = vertexList.ToArray();
+            mesh.normals = normalList.ToArray();
+            mesh.triangles = triangleList.ToArray();
+            return mesh;
+        }
+
+        RouteStraight CaculateRouteStraight(RoutePoint point)
+        {
+            var pre = point.m_PrePoint;
+            var pro = point.m_ProPoint;
+            //中间点不做处理
+            if(pre!= null && pre.IsStraight)
+            {
+                return null;
+            }
+            if(pro == null)
+            {
+                return null;
+            }
+
+            var start = point;
+            var end = pro;
+
+            while(pro!=null && pro.IsStraight)
+            {
+                end = pro;
+                pro = pro.m_ProPoint;
+            }
+
+            RouteStraight straight = new RouteStraight(start, end);
+            return straight;
+        }
+
+        RouteCurve CaculateRouteCurve(RoutePoint point)
+        {
+            var pre = point.m_PrePoint;
+            var pro = point.m_ProPoint;
+            if(!pre.IsStraight || !pro.IsStraight)
+            {
+                return null;
+            }
+
+            RouteCurve curve = new RouteCurve(pre, point, pro);
+            return curve;
+        }
+
+        #region ConvertMesh
         Vector3 Bezier2(Vector3 p0, Vector3 p1, Vector3 p2, float t)
         {
             Vector3 p0p1 = (1 - t) * p0 + t * p1;
@@ -191,9 +350,6 @@ namespace DragonSlay.Route
         Vector3[,] CaculateCylinderPoints()
         {
             List<(Vector3,Vector3,Vector3,float)> pointCircleInfoList = new List<(Vector3, Vector3, Vector3, float)>();
-
-            //Quaternion quaternion = Quaternion.FromToRotation(Vector3.up, new Vector3(1, 1, 0));
-            //Quaternion quaternion = Quaternion.FromToRotation(Vector3.up, Vector3.up);
             Vector3 up =  Vector3.up ;
             Vector3 right =  Vector3.right;
 
@@ -224,20 +380,6 @@ namespace DragonSlay.Route
                     dir = keyValue.Item1;
                     radiusSize = Mathf.Clamp(keyValue.Item2,1,3);
                 }
-                //Quaternion rot;
-                ////当dir与Vector3.up 完全反向时 Quaternion.FromToRotation 会得到 (1,0,0,0);
-                //if (dir == Vector3.down)
-                //{
-                //    rot = Quaternion.AngleAxis(180,Vector3.up);
-                //}
-                //else
-                //{
-                //    rot = Quaternion.FromToRotation(Vector3.up, dir);
-                //}
-
-                //rot = Quaternion.FromToRotation(Vector3.up, dir);
-                //rot = Quaternion.FromToRotation(up, dir);
-                //Matrix4x4 pointTRS = Matrix4x4.TRS(pos0, rot, Vector3.one);
 
                 right = Vector3.Cross(up, dir).normalized;
                 up = Vector3.Cross(dir, right).normalized;
@@ -256,8 +398,6 @@ namespace DragonSlay.Route
                 for (int i = 0; i < circlePointCount; i++)
                 {
                     var rad = 2 * Mathf.PI * i / circlePointCount;
-                    //var point = new Vector3(Mathf.Sin(rad) * radius * radiusSize, 0, Mathf.Cos(rad) * radius * radiusSize);
-
                     var point = Mathf.Sin(rad) * radius * radiusSize * right +
                         Mathf.Cos(rad) * radius * radiusSize * up;
                     point += pos;
@@ -334,6 +474,7 @@ namespace DragonSlay.Route
             mesh.triangles = triangles.ToArray();
             return mesh;
         }
+        #endregion
 
         #region Hole
         public int m_HolePointIndex = 5;

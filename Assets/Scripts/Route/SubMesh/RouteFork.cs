@@ -6,7 +6,7 @@ namespace DragonSlay.Route
 {
     public class RouteFork : RouteSubMesh
     {
-        public RouteFork(Vector3 start, Vector3 center, Vector3 end, Vector3 fork)
+        public RouteFork(RoutePoint start, RoutePoint center, RoutePoint end, RoutePoint fork)
         {
             m_RouteMeshType = RouteSubMeshType.Fork;
         }

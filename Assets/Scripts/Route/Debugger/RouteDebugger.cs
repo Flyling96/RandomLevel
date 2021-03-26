@@ -9,6 +9,14 @@ namespace DragonSlay.Route
     [RequireComponent(typeof(MeshRenderer))]
     public class RouteDebugger : MonoBehaviour
     {
+        public List<GameObject> m_PointGos = new List<GameObject>();
+
+        public List<int> m_StartPointIndexs = new List<int>();
+
+        public List<int> m_EndPointIndexs = new List<int>();
+
+
+
         public Route m_Route = null;
 
         public Route Route
@@ -46,9 +54,26 @@ namespace DragonSlay.Route
             Route.UpdateTransform(transform.position, transform.rotation);
         }
 
+        public void GenerateRouteGraph()
+        {
+            Route.ClearPoints();
+            for(int i =0;i< m_PointGos.Count;i++)
+            {
+                Route.AddPoints(m_PointGos[i].transform.position);
+            }
+
+            for(int i = 0; i < m_StartPointIndexs.Count;i++)
+            {
+                var start = m_StartPointIndexs[i];
+                var end = m_EndPointIndexs[i];
+                Route.ConnectPoint(start, end);
+            }
+
+        }
+
         public void ConvertMesh()
         {
-            var mesh = Route.ConvertToMesh();
+            var mesh = Route.ConvertSubMeshes();
             if(mesh != null)
             {
                 GetComponent<MeshFilter>().sharedMesh = mesh;

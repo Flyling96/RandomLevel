@@ -23,6 +23,12 @@ namespace DragonSlay.Route
 
             //}
 
+
+            if(GUILayout.Button("GenerateRouteGraph"))
+            {
+                debugger.GenerateRouteGraph();
+            }
+
             if (GUILayout.Button("ConvertMesh"))
             {
                 debugger.ConvertMesh();
