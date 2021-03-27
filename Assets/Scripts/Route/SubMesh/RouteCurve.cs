@@ -10,12 +10,12 @@ namespace DragonSlay.Route
         RoutePoint m_End;
         RoutePoint m_Turn;
 
-        public RouteCurve(RoutePoint start, RoutePoint turn, RoutePoint end)
+        public RouteCurve(RoutePoint turn)
         {
             m_RouteMeshType = RouteSubMeshType.Curve;
-            m_Start = start;
+            m_Start = turn.m_PrePoint;
             m_Turn = turn;
-            m_End = end;
+            m_End = turn.m_ProPoint;
             CaculateRealRoutePoints();
         }
 
@@ -24,10 +24,10 @@ namespace DragonSlay.Route
             base.CaculateRealRoutePoints();
             var dir0 = m_Turn.m_LocalPos - m_Start.m_LocalPos;
             var dir1 = m_End.m_LocalPos - m_Turn.m_LocalPos;
-            float pointCount = (dir0.magnitude + dir1.magnitude) * 2;
-            for (int j = 1; j < pointCount - 1; j++)
+            int pointCount = (int)(dir0.magnitude + dir1.magnitude) * 2;
+            for (int j = 0; j < pointCount; j++)
             {
-                var point = Bezier2(m_Start.m_LocalPos, m_Turn.m_LocalPos, m_End.m_LocalPos, j / pointCount);
+                var point = Bezier2(m_Start.m_LocalPos, m_Turn.m_LocalPos, m_End.m_LocalPos, j * 1.0f / (pointCount - 1));
                 m_RealRoutePoints.Add(point);
             }
         }
@@ -132,14 +132,14 @@ namespace DragonSlay.Route
                 float radiusSize = 1;
                 if (i == 0)
                 {
-                    pos0 = m_RealRoutePoints[i];
-                    pos1 = m_RealRoutePoints[i + 1];
+                    pos0 = m_Start.m_LocalPos;
+                    pos1 = m_Turn.m_LocalPos;
                     dir = -(pos1 - pos0).normalized;
                 }
                 else if (i == m_RealRoutePoints.Count - 1)
                 {
-                    pos0 = m_RealRoutePoints[i];
-                    pos1 = m_RealRoutePoints[i - 1];
+                    pos0 = m_End.m_LocalPos;
+                    pos1 = m_Turn.m_LocalPos;
                     dir = -(pos0 - pos1).normalized;
                 }
                 else

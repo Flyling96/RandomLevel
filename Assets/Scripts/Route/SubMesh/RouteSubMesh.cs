@@ -37,6 +37,37 @@ namespace DragonSlay.Route
 
         protected List<Vector3> m_RealRoutePoints = new List<Vector3>();
 
+        protected void CaculateStraightVertex(Vector3 startPos, Vector3 endPos)
+        {
+            var dir = (endPos - startPos).normalized;
+            Vector3 up = Vector3.up;
+            Vector3 right = Vector3.right;
+            right = Vector3.Cross(up, dir).normalized;
+            up = Vector3.Cross(dir, right).normalized;
+
+            for (int i = 0; i < m_RouteCirclePointCount; i++)
+            {
+                var rad = 2 * Mathf.PI * i / m_RouteCirclePointCount;
+                var point = Mathf.Sin(rad) * m_RouteCircleRadius * right +
+                    Mathf.Cos(rad) * m_RouteCircleRadius * up;
+                var normal = point.normalized;
+                point += startPos;
+                m_VertexList.Add(point);
+                m_NormalList.Add(normal);
+            }
+
+            for (int i = 0; i < m_RouteCirclePointCount; i++)
+            {
+                var rad = 2 * Mathf.PI * i / m_RouteCirclePointCount;
+                var point = Mathf.Sin(rad) * m_RouteCircleRadius * right +
+                    Mathf.Cos(rad) * m_RouteCircleRadius * up;
+                var normal = point.normalized;
+                point += endPos;
+                m_VertexList.Add(point);
+                m_NormalList.Add(normal);
+            }
+        }
+
         public virtual void CaculateMesh() 
         {
             m_VertexList.Clear();

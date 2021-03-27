@@ -70,7 +70,7 @@ namespace DragonSlay.Route
         {
             DisconnectPoint(start, end);
             ConnectPoint(start, point);
-            ConnectPoint(end, point);
+            ConnectPoint(point, end);
         }
 
         void DisconnectPoint(RoutePoint p0, RoutePoint p1)
@@ -238,7 +238,7 @@ namespace DragonSlay.Route
                 return null;
             }
 
-            RouteCurve curve = new RouteCurve(pre, point, pro);
+            RouteCurve curve = new RouteCurve(point);
             return curve;
         }
 
@@ -528,16 +528,9 @@ namespace DragonSlay.Route
                 circlePoints[i] = point;
             }
 
-
-
             Debug.Log(centerPos);
-        
-
+     
             return circlePoints;
-
-
-
-
         }
 
         public Mesh CreateHole()

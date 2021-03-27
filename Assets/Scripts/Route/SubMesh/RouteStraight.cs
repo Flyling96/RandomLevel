@@ -30,33 +30,8 @@ namespace DragonSlay.Route
 
             var startPos = m_Start.m_LocalPos;
             var endPos = m_End.m_LocalPos;
-            var dir = (endPos - startPos).normalized;
-            Vector3 up = Vector3.up;
-            Vector3 right = Vector3.right;
-            right = Vector3.Cross(up, dir).normalized;
-            up = Vector3.Cross(dir, right).normalized;
 
-            for (int i = 0; i < m_RouteCirclePointCount; i++)
-            {
-                var rad = 2 * Mathf.PI * i / m_RouteCirclePointCount;
-                var point = Mathf.Sin(rad) * m_RouteCircleRadius  * right +
-                    Mathf.Cos(rad) * m_RouteCircleRadius  * up;
-                var normal = point.normalized;
-                point += startPos;
-                m_VertexList.Add(point);
-                m_NormalList.Add(normal);
-            }
-
-            for (int i = 0; i < m_RouteCirclePointCount; i++)
-            {
-                var rad = 2 * Mathf.PI * i / m_RouteCirclePointCount;
-                var point = Mathf.Sin(rad) * m_RouteCircleRadius * right +
-                    Mathf.Cos(rad) * m_RouteCircleRadius * up;
-                var normal = point.normalized;
-                point += endPos;
-                m_VertexList.Add(point);
-                m_NormalList.Add(normal);
-            }
+            CaculateStraightVertex(startPos, endPos);
 
             for (int i = 0; i < m_RouteCirclePointCount; i++)
             {
