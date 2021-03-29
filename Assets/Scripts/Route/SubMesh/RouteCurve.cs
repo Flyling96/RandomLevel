@@ -154,8 +154,7 @@ namespace DragonSlay.Route
                     radiusSize = Mathf.Clamp(keyValue.Item2, 1, 3);
                 }
 
-                right = Vector3.Cross(up, dir).normalized;
-                up = Vector3.Cross(dir, right).normalized;
+                CaculateCoordinate(dir, out up, out right);
                 pointCircleInfoList.Add((pos0, up, right, radiusSize));
 
 

@@ -23,7 +23,7 @@ namespace DragonSlay.Route
             Intersection,   //十字路口
         }
 
-        public int m_RouteCirclePointCount = 20;
+        public int m_RouteCirclePointCount = 8;
         public float m_RouteCircleRadius = 3;
 
         protected RouteSubMeshType m_RouteMeshType = RouteSubMeshType.Straight;
@@ -37,13 +37,29 @@ namespace DragonSlay.Route
 
         protected List<Vector3> m_RealRoutePoints = new List<Vector3>();
 
+        protected void CaculateCoordinate(Vector3 forward , out Vector3 up,out Vector3 right)
+        {
+            forward = forward.normalized;
+            up = Vector3.up;
+            right = Vector3.right;
+            if (Vector3.Dot(forward, up) == 1)
+            {
+                up = Vector3.Cross(forward, right).normalized;
+                right = Vector3.Cross(up, forward).normalized;
+            }
+            else
+            {
+                right = Vector3.Cross(up, forward).normalized;
+                up = Vector3.Cross(forward, right).normalized;
+            }
+        }
+
         protected void CaculateStraightVertex(Vector3 startPos, Vector3 endPos)
         {
             var dir = (endPos - startPos).normalized;
             Vector3 up = Vector3.up;
             Vector3 right = Vector3.right;
-            right = Vector3.Cross(up, dir).normalized;
-            up = Vector3.Cross(dir, right).normalized;
+            CaculateCoordinate(dir, out up, out right);
 
             for (int i = 0; i < m_RouteCirclePointCount; i++)
             {
@@ -67,6 +83,7 @@ namespace DragonSlay.Route
                 m_NormalList.Add(normal);
             }
         }
+
 
         public virtual void CaculateMesh() 
         {

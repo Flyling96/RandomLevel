@@ -121,11 +121,8 @@ namespace DragonSlay.Route
             {
                 var point = m_Points[i];
                 m_ComplateRoutePoints.Add(point);
-                if (point.IsFork)
-                {
-
-                }
-                else if(point.IsTurn)
+                
+                if(point.IsTurn || point.IsFork)
                 {
                     var pre = point.m_PrePoint;
                     var pro = point.m_ProPoint;
@@ -144,6 +141,22 @@ namespace DragonSlay.Route
                         var p = new RoutePoint(pos);
                         InsertPoint(point, pro, p);
                         m_ComplateRoutePoints.Add(p);
+                    }
+                }
+
+                if(point.IsFork)
+                {
+                    for(int j = point.m_ForkPoints.Count - 1; j >-1;j--)
+                    {
+                        var forkPoint = point.m_ForkPoints[j];
+                        var dir = forkPoint.m_LocalPos - point.m_LocalPos;
+                        if (dir.magnitude >  radius)
+                        {
+                            var pos = point.m_LocalPos + dir.normalized * radius;
+                            var p = new RoutePoint(pos);
+                            InsertPoint(point, forkPoint, p);
+                            m_ComplateRoutePoints.Add(p);
+                        }
                     }
                 }
             }
@@ -171,6 +184,14 @@ namespace DragonSlay.Route
                     if(curve != null)
                     {
                         m_SubMeshList.Add(curve);
+                    }
+                }
+                else if(point.IsFork)
+                {
+                    var fork = CaculateRouteFork(point);
+                    if(fork != null)
+                    {
+                        m_SubMeshList.Add(fork);
                     }
                 }
 
@@ -241,6 +262,19 @@ namespace DragonSlay.Route
             RouteCurve curve = new RouteCurve(point);
             return curve;
         }
+
+        RouteFork CaculateRouteFork(RoutePoint point)
+        {
+            var pre = point.m_PrePoint;
+            var pro = point.m_ProPoint;
+            if (!pre.IsStraight || !pro.IsStraight)
+            {
+                return null;
+            }
+            RouteFork fork = new RouteFork(point);
+            return fork;
+        }
+
 
         #region ConvertMesh
         Vector3 Bezier2(Vector3 p0, Vector3 p1, Vector3 p2, float t)
