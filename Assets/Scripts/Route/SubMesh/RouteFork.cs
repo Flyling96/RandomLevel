@@ -9,7 +9,7 @@ namespace DragonSlay.Route
         RoutePoint m_Center = null;
         List<RoutePoint> m_ForkPoints = null;
 
-        public RouteFork(RoutePoint center)
+        public RouteFork(RoutePoint center, float radius, int pointCount) : base(radius, pointCount)
         {
             m_RouteMeshType = RouteSubMeshType.Fork;
             m_Center = center;
@@ -345,11 +345,17 @@ namespace DragonSlay.Route
             CaculateCoordinate(dir, out up, out right);
             var inputDir3D = (inputDir.x * right + inputDir.y * up).normalized;
 
+            List<RoutePoint> breachList = new List<RoutePoint>();
+            breachList.Add(m_Start);
+            breachList.Add(m_End);
+            breachList.AddRange(m_ForkPoints);
+            breachList.Remove(m_EnterPoint);
+
             float maxDot = float.MinValue;
             int targetIndex = -1;
-            for(int i =0;i < m_ForkPoints.Count;i++)
+            for(int i =0;i < breachList.Count;i++)
             {
-                dir = (m_ForkPoints[i].m_LocalPos - m_Center.m_LocalPos).normalized;
+                dir = (breachList[i].m_LocalPos - m_Center.m_LocalPos).normalized;
                 var dot = Vector3.Dot(dir, inputDir3D);
                 if(dot > maxDot)
                 {
@@ -360,7 +366,7 @@ namespace DragonSlay.Route
 
             if(maxDot > 0.5f && targetIndex > -1)
             {
-                return m_ForkPoints[targetIndex];
+                return breachList[targetIndex];
             }
 
             return defaultPoint;

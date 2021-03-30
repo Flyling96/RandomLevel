@@ -34,6 +34,7 @@ namespace DragonSlay.Route
             }
         }
 
+
         List<RoutePoint> m_Points = new List<RoutePoint>();
 
 
@@ -41,7 +42,6 @@ namespace DragonSlay.Route
         {
             m_Position = pos;
             m_Rotation = rot;
-            m_RealRoutePoints = new List<Vector3>();
         }
 
         public void ClearPoints()
@@ -100,22 +100,33 @@ namespace DragonSlay.Route
         public void OnAfterDeserialize()
         {
             m_TRS = Matrix4x4.TRS(m_Position, m_Rotation, Vector3.one);
-            if (m_RealRoutePoints == null)
-            {
-                m_RealRoutePoints = new List<Vector3>();
-            }
-
-            if(m_ComplateRoutePoints == null)
+            if (m_ComplateRoutePoints == null)
             {
                 m_ComplateRoutePoints = new HashSet<RoutePoint>();
             }
-        }
 
-        List<Vector3> m_RealRoutePoints = new List<Vector3>();
+            if (m_GateRoutePoints == null)
+            {
+                m_GateRoutePoints = new List<RoutePoint>();
+            }
+
+            if (m_SubMeshList == null)
+            {
+                m_SubMeshList = new List<RouteSubMesh>();
+            }
+
+            if(m_Points == null)
+            {
+                m_Points = new List<RoutePoint>();
+            }
+        }
 
         HashSet<RoutePoint> m_ComplateRoutePoints = new HashSet<RoutePoint>();
         List<RoutePoint> m_GateRoutePoints = new List<RoutePoint>();
-        float radius = 3;
+
+        public float m_CircleRadius = 3;
+        public int m_CirclePointCount = 24;
+
         public void AutoFillPoint()
         {
             m_ComplateRoutePoints.Clear();
@@ -130,16 +141,16 @@ namespace DragonSlay.Route
                     var pro = point.m_ProPoint;
                     var dir0 = pre.m_LocalPos - point.m_LocalPos;
                     var dir1 = pro.m_LocalPos - point.m_LocalPos;
-                    if(dir0.magnitude > radius)
+                    if(dir0.magnitude > m_CircleRadius)
                     {
-                        var pos = point.m_LocalPos + dir0.normalized * radius;
+                        var pos = point.m_LocalPos + dir0.normalized * m_CircleRadius;
                         var p = new RoutePoint(pos);
                         InsertPoint(pre, point, p);
                         m_ComplateRoutePoints.Add(p);
                     }
-                    if(dir1.magnitude > radius)
+                    if(dir1.magnitude > m_CircleRadius)
                     {
-                        var pos = point.m_LocalPos + dir1.normalized * radius;
+                        var pos = point.m_LocalPos + dir1.normalized * m_CircleRadius;
                         var p = new RoutePoint(pos);
                         InsertPoint(point, pro, p);
                         m_ComplateRoutePoints.Add(p);
@@ -152,9 +163,9 @@ namespace DragonSlay.Route
                     {
                         var forkPoint = point.m_ForkPoints[j];
                         var dir = forkPoint.m_LocalPos - point.m_LocalPos;
-                        if (dir.magnitude >  radius)
+                        if (dir.magnitude > m_CircleRadius)
                         {
-                            var pos = point.m_LocalPos + dir.normalized * radius;
+                            var pos = point.m_LocalPos + dir.normalized * m_CircleRadius;
                             var p = new RoutePoint(pos);
                             InsertPoint(point, forkPoint, p);
                             m_ComplateRoutePoints.Add(p);
@@ -260,7 +271,7 @@ namespace DragonSlay.Route
                 pro = pro.m_ProPoint;
             }
 
-            RouteStraight straight = new RouteStraight(start, end);
+            RouteStraight straight = new RouteStraight(start, end, m_CircleRadius,m_CirclePointCount);
             return straight;
         }
 
@@ -273,7 +284,7 @@ namespace DragonSlay.Route
                 return null;
             }
 
-            RouteCurve curve = new RouteCurve(point);
+            RouteCurve curve = new RouteCurve(point, m_CircleRadius, m_CirclePointCount);
             return curve;
         }
 
@@ -285,7 +296,7 @@ namespace DragonSlay.Route
             {
                 return null;
             }
-            RouteFork fork = new RouteFork(point);
+            RouteFork fork = new RouteFork(point, m_CircleRadius, m_CirclePointCount);
             return fork;
         }
 
@@ -294,6 +305,23 @@ namespace DragonSlay.Route
         private float m_HasMoveDis = 0;
         private float m_SampleTime = 0;
         public float m_MoveSpeed = 1.0f;
+
+        private Vector2 m_InputDir = Vector2.zero;
+        public float m_InputDelayTime = 3;
+        private float m_InputTime = 0;
+        public void UpdateInputDir(Vector2 inputDir)
+        {
+            if(inputDir == Vector2.zero)
+            {
+                return;
+            }
+
+            if(m_InputDir != inputDir)
+            {
+                m_InputDir = inputDir;
+                m_InputTime = m_InputDelayTime;
+            }
+        }
 
         public void StartRoute(int gateIndex)
         {
@@ -310,7 +338,7 @@ namespace DragonSlay.Route
             }
 
             m_CurrentSubMesh = subMesh;
-            m_CurrentSubMesh.EnterSubMesh(point, Vector2.up);
+            m_CurrentSubMesh.EnterSubMesh(point, Vector2.zero);
             m_SampleTime = 0;
             m_HasMoveDis = 0;
 
@@ -318,6 +346,15 @@ namespace DragonSlay.Route
 
         public (bool,Vector3) Sample(float deltaTime)
         {
+            if(m_InputTime > 0)
+            {
+                m_InputTime -= deltaTime;
+                if(m_InputTime <= 0)
+                {
+                    m_InputDir = Vector2.zero;
+                }
+            }
+
             if(m_CurrentSubMesh == null)
             {
                 return (false, Vector3.zero);
@@ -338,7 +375,7 @@ namespace DragonSlay.Route
                     }
                     else
                     {
-                        m_CurrentSubMesh.EnterSubMesh(nextPoint, Vector2.up);
+                        m_CurrentSubMesh.EnterSubMesh(nextPoint, m_InputDir);
                     }
                 }
             }

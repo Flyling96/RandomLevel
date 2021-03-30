@@ -5,7 +5,7 @@ using UnityEngine;
 namespace DragonSlay.Route
 {
     [System.Serializable]
-    public class RoutePoint 
+    public class RoutePoint : ISerializationCallbackReceiver
     {
         public Vector3 m_LocalPos;
 
@@ -157,8 +157,22 @@ namespace DragonSlay.Route
             }
         }
 
+        public void OnBeforeSerialize()
+        {
+            
+        }
 
+        public void OnAfterDeserialize()
+        {
+            if(m_ForkPoints == null)
+            {
+                m_ForkPoints = new List<RoutePoint>();
+            }
 
-
+            if(m_BelongSubMeshes == null)
+            {
+                m_BelongSubMeshes = new RouteSubMesh[2];
+            }
+        }
     }
 }

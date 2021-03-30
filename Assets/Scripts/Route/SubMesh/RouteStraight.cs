@@ -7,7 +7,7 @@ namespace DragonSlay.Route
     public class RouteStraight : RouteSubMesh
     {
 
-        public RouteStraight(RoutePoint start, RoutePoint end)
+        public RouteStraight(RoutePoint start, RoutePoint end,float radius,int pointCount):base(radius,pointCount)
         {
             m_RouteMeshType = RouteSubMeshType.Straight;
             m_Start = start;

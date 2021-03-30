@@ -8,7 +8,7 @@ namespace DragonSlay.Route
     {
         RoutePoint m_Turn = null;
 
-        public RouteCurve(RoutePoint turn)
+        public RouteCurve(RoutePoint turn, float radius, int pointCount) : base(radius, pointCount)
         {
             m_RouteMeshType = RouteSubMeshType.Curve;
             m_Start = turn.m_PrePoint;
@@ -237,7 +237,7 @@ namespace DragonSlay.Route
                     }
                 }
 
-                var allDis = m_RealPointDises[index + 1] - m_RealPointDises[index];
+                var allDis = m_RealPointDises[index] - m_RealPointDises[index - 1];
                 dis -= m_Distance - m_RealPointDises[index];
 
                 return (true, Vector3.Lerp(m_RealRoutePoints[index], m_RealRoutePoints[index - 1], Mathf.Clamp01(dis / allDis)));

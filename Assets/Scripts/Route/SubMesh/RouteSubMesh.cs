@@ -24,9 +24,15 @@ namespace DragonSlay.Route
             Intersection,   //十字路口
         }
 
-        public int m_RouteCirclePointCount = 48;
-        public float m_RouteCircleRadius = 3;
+        protected int m_RouteCirclePointCount = 0;
+        protected float m_RouteCircleRadius = 0;
         public float m_Distance = 0;
+
+        public RouteSubMesh(float radius,int pointCount)
+        {
+            m_RouteCircleRadius = radius;
+            m_RouteCirclePointCount = pointCount;
+        }
 
         protected RoutePoint m_Start = null;
         protected RoutePoint m_End = null;

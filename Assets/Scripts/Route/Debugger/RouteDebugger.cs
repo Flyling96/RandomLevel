@@ -44,6 +44,18 @@ namespace DragonSlay.Route
             m_EditStart = false;
         }
 
+        private void Start()
+        {
+            if (Application.isPlaying)
+            {
+                GenerateRouteGraph();
+                ConvertMesh();
+                StartRoute();
+            }
+        }
+
+
+
         public void EditState(bool isStart)
         {
             m_EditStart = isStart;
@@ -52,6 +64,14 @@ namespace DragonSlay.Route
         private void Update()
         {
             Route.UpdateTransform(transform.position, transform.rotation);
+            if(Application.isPlaying)
+            {
+                Vector2 inputDir;// Input.GetAxis("Horizontal");
+                inputDir.x = Input.GetAxis("Horizontal");
+                inputDir.y = Input.GetAxis("Vertical");
+                Route.UpdateInputDir(inputDir);
+                SampleRoute();
+            }
         }
 
         public void GenerateRouteGraph()
@@ -102,7 +122,8 @@ namespace DragonSlay.Route
         {
             if (m_IsStartRoute)
             {
-                var res = Route.Sample(m_SampleDeltaTime);
+                float deltaTime = Application.isPlaying ? Time.deltaTime : m_SampleDeltaTime;
+                var res = Route.Sample(deltaTime);
                 if(res.Item1)
                 {
                     m_SampleDebugger.transform.position = res.Item2;
