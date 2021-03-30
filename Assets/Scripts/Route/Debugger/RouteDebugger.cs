@@ -82,10 +82,35 @@ namespace DragonSlay.Route
 
         public void CaculateHolePoints()
         {
-            var mesh = Route.CreateHole();
-            if (mesh != null)
+            //var mesh = Route.CreateHole();
+            //if (mesh != null)
+            //{
+            //    GetComponent<MeshFilter>().sharedMesh = mesh;
+            //}
+        }
+
+        public int m_EnterGate = 0;
+        public float m_SampleDeltaTime = 0.3f;
+        private bool m_IsStartRoute = false;
+        public void StartRoute()
+        {
+            Route.StartRoute(m_EnterGate);
+            m_IsStartRoute = true;
+        }
+        public GameObject m_SampleDebugger = null;
+        public void SampleRoute()
+        {
+            if (m_IsStartRoute)
             {
-                GetComponent<MeshFilter>().sharedMesh = mesh;
+                var res = Route.Sample(m_SampleDeltaTime);
+                if(res.Item1)
+                {
+                    m_SampleDebugger.transform.position = res.Item2;
+                }
+                else
+                {
+                    m_IsStartRoute = false;
+                }
             }
         }
     }

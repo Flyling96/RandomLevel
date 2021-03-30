@@ -17,10 +17,36 @@ namespace DragonSlay.Route
 
         [HideInInspector]
         public List<RoutePoint> m_ForkPoints = new List<RoutePoint>();
+        [HideInInspector]
+        public RouteSubMesh[] m_BelongSubMeshes = new RouteSubMesh[2];
 
         public RoutePoint(Vector3 localPos)
         {
             m_LocalPos = localPos;
+        }
+
+        public void AddSubMesh(RouteSubMesh subMesh)
+        {
+            if(m_BelongSubMeshes[0] == null)
+            {
+                m_BelongSubMeshes[0] = subMesh;
+            }
+            else if(m_BelongSubMeshes[1] == null)
+            {
+                m_BelongSubMeshes[1] = subMesh;
+            }
+        }
+
+        public RouteSubMesh GetOtherSubMesh(RouteSubMesh subMesh)
+        {
+            if (m_BelongSubMeshes[0] == subMesh)
+            {
+                return m_BelongSubMeshes[1];
+            }
+            else;
+            {
+                return m_BelongSubMeshes[0];
+            }
         }
 
         public bool IsStraight

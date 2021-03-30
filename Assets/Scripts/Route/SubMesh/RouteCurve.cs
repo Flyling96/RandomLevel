@@ -6,9 +6,7 @@ namespace DragonSlay.Route
 {
     public class RouteCurve :RouteSubMesh
     {
-        RoutePoint m_Start;
-        RoutePoint m_End;
-        RoutePoint m_Turn;
+        RoutePoint m_Turn = null;
 
         public RouteCurve(RoutePoint turn)
         {
@@ -16,6 +14,9 @@ namespace DragonSlay.Route
             m_Start = turn.m_PrePoint;
             m_Turn = turn;
             m_End = turn.m_ProPoint;
+            m_Start.AddSubMesh(this);
+            m_End.AddSubMesh(this);
+            m_Turn.AddSubMesh(this);
             CaculateRealRoutePoints();
         }
 
@@ -30,6 +31,7 @@ namespace DragonSlay.Route
                 var point = Bezier2(m_Start.m_LocalPos, m_Turn.m_LocalPos, m_End.m_LocalPos, j * 1.0f / (pointCount - 1));
                 m_RealRoutePoints.Add(point);
             }
+            CaculateDistance();
         }
 
         public override void CaculateMesh()
@@ -42,15 +44,27 @@ namespace DragonSlay.Route
 
             var cylinderPoints = CaculateCylinderPoints();
 
+            float disX = 0;
             for (int j = 0; j < m_RealRoutePoints.Count; j++)
             {
+                if(j > 0)
+                {
+                    disX += (m_RealRoutePoints[j] - m_RealRoutePoints[j - 1]).magnitude;
+                }
                 var point = m_RealRoutePoints[j];
+                float disY = 0;
                 for (int i = 0; i < m_RouteCirclePointCount; i++)
                 {
+                    if(i > 1)
+                    {
+                        disY += (cylinderPoints[j, i] - cylinderPoints[j, i - 1]).magnitude;
+                    }
                     var cylinderPoint = cylinderPoints[j, i];
                     var normal = (cylinderPoint - point).normalized;
+                    var uv = new Vector2(disX, disY);
                     m_VertexList.Add(cylinderPoint);
                     m_NormalList.Add(normal);
+                    m_UVList.Add(uv);
                 }
             }
 
@@ -179,5 +193,56 @@ namespace DragonSlay.Route
 
             return cylinderPoints;
         }
+
+        public override (bool, Vector3) SamplePos(float dis)
+        {
+            if (m_EnterPoint == null || m_NextPoint == null || m_Distance == 0)
+            {
+                return (false, Vector3.zero);
+            }
+
+            if (dis > m_Distance)
+            {
+                return (true, m_NextPoint.m_LocalPos);
+            }
+
+            if (m_EnterPoint.m_LocalPos == m_RealRoutePoints[0])
+            {
+                int index = 0;
+                for (int i = 0; i < m_RealPointDises.Length - 1; i++)
+                {
+                    if (m_RealPointDises[i] < dis && m_RealPointDises[i + 1] >= dis)
+                    {
+                        index = i;
+                        break;
+                    }
+                }
+
+                var allDis = m_RealPointDises[index + 1] - m_RealPointDises[index];
+                dis -= m_RealPointDises[index];
+
+                return (true, Vector3.Lerp(m_RealRoutePoints[index], m_RealRoutePoints[index + 1], Mathf.Clamp01(dis / allDis)));
+            }
+            else
+            {
+                int index = 0;
+                for (int i = m_RealPointDises.Length - 1; i > 0; i--)
+                {
+                    var dis0 = m_Distance - m_RealPointDises[i];
+                    var dis1 = m_Distance - m_RealPointDises[i - 1];
+                    if (dis0 < dis && dis1 >= dis)
+                    {
+                        index = i;
+                        break;
+                    }
+                }
+
+                var allDis = m_RealPointDises[index + 1] - m_RealPointDises[index];
+                dis -= m_Distance - m_RealPointDises[index];
+
+                return (true, Vector3.Lerp(m_RealRoutePoints[index], m_RealRoutePoints[index - 1], Mathf.Clamp01(dis / allDis)));
+            }
+        }
+
     }
 }

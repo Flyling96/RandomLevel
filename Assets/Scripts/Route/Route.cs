@@ -114,6 +114,8 @@ namespace DragonSlay.Route
         List<Vector3> m_RealRoutePoints = new List<Vector3>();
 
         HashSet<RoutePoint> m_ComplateRoutePoints = new HashSet<RoutePoint>();
+        List<RoutePoint> m_GateRoutePoints = new List<RoutePoint>();
+        float radius = 3;
         public void AutoFillPoint()
         {
             m_ComplateRoutePoints.Clear();
@@ -168,28 +170,37 @@ namespace DragonSlay.Route
             AutoFillPoint();
 
             m_SubMeshList.Clear();
-            foreach(var point in m_ComplateRoutePoints)
+            m_GateRoutePoints.Clear();
+            foreach (var point in m_ComplateRoutePoints)
             {
-                if(point.IsStraight)
+                if (point.IsStraight)
                 {
                     var straight = CaculateRouteStraight(point);
-                    if(straight != null)
+                    if (straight != null)
                     {
                         m_SubMeshList.Add(straight);
                     }
+
+                    if (point.IsGate)
+                    {
+                        if (!m_GateRoutePoints.Contains(point))
+                        {
+                            m_GateRoutePoints.Add(point);
+                        }
+                    }
                 }
-                else if(point.IsTurn)
+                else if (point.IsTurn)
                 {
                     var curve = CaculateRouteCurve(point);
-                    if(curve != null)
+                    if (curve != null)
                     {
                         m_SubMeshList.Add(curve);
                     }
                 }
-                else if(point.IsFork)
+                else if (point.IsFork)
                 {
                     var fork = CaculateRouteFork(point);
-                    if(fork != null)
+                    if (fork != null)
                     {
                         m_SubMeshList.Add(fork);
                     }
@@ -204,6 +215,7 @@ namespace DragonSlay.Route
 
             List<Vector3> vertexList = new List<Vector3>();
             List<Vector3> normalList = new List<Vector3>();
+            List<Vector2> uvList = new List<Vector2>();
             List<int> triangleList = new List<int>();
 
             for(int i =0;i < m_SubMeshList.Count;i++)
@@ -213,12 +225,14 @@ namespace DragonSlay.Route
                 var meshData = subMesh.ConvertMesh(vertexList.Count);
                 vertexList.AddRange(meshData.m_VertexList);
                 normalList.AddRange(meshData.m_NormalList);
+                uvList.AddRange(meshData.m_UVList);
                 triangleList.AddRange(meshData.m_TriangleList);
             }
 
             Mesh mesh = new Mesh();
             mesh.vertices = vertexList.ToArray();
             mesh.normals = normalList.ToArray();
+            mesh.uv = uvList.ToArray();
             mesh.triangles = triangleList.ToArray();
             return mesh;
         }
@@ -275,381 +289,68 @@ namespace DragonSlay.Route
             return fork;
         }
 
+        #region Sample
+        private RouteSubMesh m_CurrentSubMesh;
+        private float m_HasMoveDis = 0;
+        private float m_SampleTime = 0;
+        public float m_MoveSpeed = 1.0f;
 
-        #region ConvertMesh
-        Vector3 Bezier2(Vector3 p0, Vector3 p1, Vector3 p2, float t)
+        public void StartRoute(int gateIndex)
         {
-            Vector3 p0p1 = (1 - t) * p0 + t * p1;
-            Vector3 p1p2 = (1 - t) * p1 + t * p2;
-            Vector3 res = (1 - t) * p0p1 + t * p1p2;
-            return res;
+            if(m_GateRoutePoints.Count < gateIndex + 1)
+            {
+                return;
+            }
+
+            var point = m_GateRoutePoints[gateIndex];
+            var subMesh = point.m_BelongSubMeshes[0];
+            if(subMesh == null)
+            {
+                return;
+            }
+
+            m_CurrentSubMesh = subMesh;
+            m_CurrentSubMesh.EnterSubMesh(point, Vector2.up);
+            m_SampleTime = 0;
+            m_HasMoveDis = 0;
+
         }
 
-        public void Bezier2Point()
+        public (bool,Vector3) Sample(float deltaTime)
         {
-            m_RealRoutePoints.Clear();
-            float minDis = 1;
-            float maxDis = 3;
-            List<Vector3> routePoint = new List<Vector3>();
-            routePoint.Add(m_Points[0].m_LocalPos);
-            for (int i = 1; i < m_Points.Count - 1; i++)
+            if(m_CurrentSubMesh == null)
             {
-                var p0 = m_Points[i - 1].m_LocalPos;
-                var p1 = m_Points[i].m_LocalPos;
-                var p2 = m_Points[i + 1].m_LocalPos;
-                var dir0 = p1 - p0;
-                var dir1 = p2 - p1;
-                if (Vector3.Dot(dir0, dir1) == dir0.magnitude * dir1.magnitude)
-                {
-                    routePoint.Add(p1);
-                }
-                else
-                {
-                    float dis0 = Mathf.Clamp(dir0.magnitude / 3, minDis, maxDis);
-                    float dis1 = Mathf.Clamp(dir1.magnitude / 3, minDis, maxDis);
-                    routePoint.Add(p1 - dir0.normalized * dis0);
-                    routePoint.Add(p1);
-                    routePoint.Add(p1 + dir1.normalized * dis1);
-                }
+                return (false, Vector3.zero);
             }
-            routePoint.Add(m_Points[m_Points.Count - 1].m_LocalPos);
+            m_SampleTime += deltaTime;
 
-            m_RealRoutePoints.Add(routePoint[0]);
-            for(int i =1;i < routePoint.Count - 1;i++)
+            float dis = m_MoveSpeed * m_SampleTime;
+            if (m_CurrentSubMesh.m_Distance + m_HasMoveDis < dis) 
             {
-                var p0 = routePoint[i - 1];
-                var p1 = routePoint[i];
-                var p2 = routePoint[i + 1];
-                var dir0 = p1 - p0;
-                var dir1 = p2 - p1;
-                if(Mathf.Abs(Vector3.Dot(dir0,dir1) - dir0.magnitude * dir1.magnitude) < 0.01f)
+                var nextPoint = m_CurrentSubMesh.m_NextPoint;
+                if(nextPoint != null)
                 {
-                    m_RealRoutePoints.Add(p1);
-                }
-                else
-                {
-                    float pointCount = (dir0.magnitude + dir1.magnitude) * 2;
-                    for(int j =1;j< pointCount - 1;j++)
+                    m_HasMoveDis += m_CurrentSubMesh.m_Distance;
+                    m_CurrentSubMesh = nextPoint.GetOtherSubMesh(m_CurrentSubMesh);
+                    if(m_CurrentSubMesh == null)
                     {
-                        var point = Bezier2(p0, p1, p2, j / pointCount);
-                        m_RealRoutePoints.Add(point);
+                        return (true, m_TRS.MultiplyPoint(nextPoint.m_LocalPos));
+                    }
+                    else
+                    {
+                        m_CurrentSubMesh.EnterSubMesh(nextPoint, Vector2.up);
                     }
                 }
             }
-            m_RealRoutePoints.Add(m_Points[m_Points.Count - 1].m_LocalPos);
+
+            dis -= m_HasMoveDis;
+            var res = m_CurrentSubMesh.SamplePos(dis);
+            res.Item2 = m_TRS.MultiplyPoint(res.Item2);
+            return res;
+
         }
 
-        Vector2 CalculateMidPointOffset2D(Vector2 a, Vector2 b)
-        {
-            a = a.normalized;
-            b = b.normalized;
-            Vector2 result;
-
-            if (a == b)
-            {
-                result = new Vector2(-a.y, a.x) ;
-                return result;
-            }
-
-            if (a.x == -b.y && a.y == b.x)
-            {
-                result = a  - b ;
-                return result;
-            }
-
-            float x = (b.x - a.x) / (a.x * b.y - b.x * a.y) ;
-            float y = (b.y - a.y) / (a.x * b.y - b.x * a.y) ;
-            result = new Vector2(x, y);
-            return result;
-        }
-
-        (Vector3,float) CalculatePlanePerpendicular(Vector3 dir0,Vector3 dir1,Vector3 point)
-        {
-            var cross = Vector3.Cross(dir0, dir1);
-            Quaternion rot = Quaternion.FromToRotation(cross, Vector3.up);
-            Matrix4x4 trs = Matrix4x4.TRS(point, rot, Vector3.one);
-            dir0 = trs.MultiplyVector(dir0);
-            dir1 = trs.MultiplyVector(dir1);
-            Vector2 dir2D0 = new Vector2(dir0.x, dir0.z);
-            Vector2 dir2D1 = new Vector2(dir1.x, dir1.z);
-            Vector2 offsetDir = CalculateMidPointOffset2D(dir2D0, dir2D1);
-            Vector3 targetDir = new Vector3(-offsetDir.y, 0 ,offsetDir.x);
-            targetDir = Matrix4x4.Inverse(trs).MultiplyVector(targetDir);
-            return (targetDir, offsetDir.magnitude);
-        }
-
-        public float radius = 3;
-        public int circlePointCount = 20;
-
-        Vector3[,] CaculateCylinderPoints()
-        {
-            List<(Vector3,Vector3,Vector3,float)> pointCircleInfoList = new List<(Vector3, Vector3, Vector3, float)>();
-            Vector3 up =  Vector3.up ;
-            Vector3 right =  Vector3.right;
-
-            for (int i = 0; i < m_RealRoutePoints.Count; i++)
-            {
-                Vector3 pos0, pos1,dir;
-                float radiusSize = 1;
-                if (i == 0)
-                {
-                    pos0 = m_RealRoutePoints[i];
-                    pos1 = m_RealRoutePoints[i + 1];
-                    dir = -(pos1 - pos0).normalized;
-                }
-                else if( i == m_RealRoutePoints.Count - 1)
-                {
-                    pos0 = m_RealRoutePoints[i];
-                    pos1 = m_RealRoutePoints[i - 1];
-                    dir = -(pos0 - pos1).normalized;
-                }
-                else
-                {
-                    pos0 = m_RealRoutePoints[i];
-                    pos1 = m_RealRoutePoints[i + 1];
-                    var pos2 = m_RealRoutePoints[i - 1];
-                    var dir0 = (pos0 - pos2).normalized;
-                    var dir1 = (pos1 - pos0).normalized;
-                    var keyValue = CalculatePlanePerpendicular(dir0, dir1, pos0);
-                    dir = keyValue.Item1;
-                    radiusSize = Mathf.Clamp(keyValue.Item2,1,3);
-                }
-
-                right = Vector3.Cross(up, dir).normalized;
-                up = Vector3.Cross(dir, right).normalized;
-                pointCircleInfoList.Add((pos0,up,right, radiusSize));
-
-
-            }
-
-            Vector3[,] cylinderPoints = new Vector3[m_RealRoutePoints.Count, circlePointCount];
-            for (int j = 0; j < pointCircleInfoList.Count; j++)
-            {
-                var pos = pointCircleInfoList[j].Item1;
-                up = pointCircleInfoList[j].Item2;
-                right = pointCircleInfoList[j].Item3;
-                var radiusSize = pointCircleInfoList[j].Item4;
-                for (int i = 0; i < circlePointCount; i++)
-                {
-                    var rad = 2 * Mathf.PI * i / circlePointCount;
-                    var point = Mathf.Sin(rad) * radius * radiusSize * right +
-                        Mathf.Cos(rad) * radius * radiusSize * up;
-                    point += pos;
-                    cylinderPoints[j, i] = point;
-                }
-            }
-
-            return cylinderPoints;
-        }
-
-        [SerializeField,HideInInspector]
-        List<Vector3> vertexList = new List<Vector3>();
-        [SerializeField,HideInInspector]
-        Dictionary<int,List<int>> triangleDic = new Dictionary<int, List<int>>();
-
-        public Mesh ConvertToMesh()
-        {
-            Bezier2Point();
-            if (m_RealRoutePoints.Count < 2)
-            {
-                return null;
-            }
-
-            var cylinderPoints = CaculateCylinderPoints();
-
-            List<Vector3> normalList = new List<Vector3>();
-            vertexList.Clear();
-            for (int j = 0; j < m_RealRoutePoints.Count; j++)
-            {
-                var point = m_RealRoutePoints[j];
-                for (int i = 0; i < circlePointCount;i++)
-                {
-                    var cylinderPoint = cylinderPoints[j, i];
-                    var normal = (cylinderPoint - point).normalized;
-                    vertexList.Add(cylinderPoint);
-                    normalList.Add(normal);
-                }
-            }
-
-            if(triangleDic == null)
-            {
-                triangleDic = new Dictionary<int, List<int>>();
-            }
-
-            triangleDic.Clear();
-            for (int j = 1; j < m_RealRoutePoints.Count;j++)
-            {
-                List<int> triangleList = new List<int>();
-                for (int i =0; i < circlePointCount;i++)
-                {
-                    var index0 = (j - 1) * circlePointCount + i;
-                    var index1 = (j - 1) * circlePointCount + (i + 1) % circlePointCount;// cylinderPoints[j - 1, (i + 1) % circlePointCount];
-                    var index2 = j * circlePointCount + i;
-                    var index3 = j * circlePointCount + (i + 1) % circlePointCount;
-                    triangleList.Add(index0);
-                    triangleList.Add(index1);
-                    triangleList.Add(index2);
-                    triangleList.Add(index1);
-                    triangleList.Add(index3);
-                    triangleList.Add(index2);
-                }
-                triangleDic.Add(j - 1, triangleList);
-            }
-
-            var mesh = new Mesh();
-            mesh.vertices = vertexList.ToArray();
-            mesh.normals = normalList.ToArray();
-            List<int> triangles = new List<int>();
-            foreach(var list in triangleDic.Values)
-            {
-                triangles.AddRange(list);
-            }
-
-            mesh.triangles = triangles.ToArray();
-            return mesh;
-        }
         #endregion
-
-        #region Hole
-        public int m_HolePointIndex = 5;
-        public float m_HolePointPro = 0.5f;
-        public float m_HoleDir = Mathf.PI / 2;
-
-        public Vector3[] CaculateHolePoints()
-        {
-            if(m_RealRoutePoints.Count <= m_HolePointIndex + 1)
-            {
-                return new Vector3[0];
-            }
-
-            Vector3[] res = new Vector3[circlePointCount + 1];
-
-            var p0 = m_RealRoutePoints[m_HolePointIndex];
-            var p1 = m_RealRoutePoints[m_HolePointIndex + 1];
-
-            float centerPro = m_HoleDir / (2 * Mathf.PI);
-            int centerIndex = (int)(centerPro * circlePointCount);
-
-            var p2 = vertexList[m_HolePointIndex * circlePointCount + centerIndex];
-            var p3 = vertexList[(m_HolePointIndex + 1) * circlePointCount + centerIndex];
-
-            var centerPos = Vector3.Lerp(p2,p3, m_HolePointPro);
-            var up = p2 - p0;
-
-            float[] dirValues = new float[circlePointCount / 4 + 1];
-            dirValues[0] = up.magnitude;
-            up = up.normalized;
-            for (int i = 1; i < circlePointCount / 4 + 1; i++)
-            {
-                var point = vertexList[m_HolePointIndex * circlePointCount + (centerIndex + i)% circlePointCount];
-                dirValues[i] = Vector3.Dot(point - p0, up);
-            }
-
-            var forward = (p1 - p0).normalized;
-            var right = Vector3.Cross(forward, up);
-
-            Vector3[] circlePoints = new Vector3[circlePointCount];
-
-            for(int i = 0; i < circlePointCount; i++)
-            {
-                var rad = 2 * Mathf.PI * i / circlePointCount;
-                int dirIndex = Mathf.Min(Mathf.Abs(i % (circlePointCount / 2) - 0), Mathf.Abs(i % (circlePointCount / 2) - circlePointCount / 2));
-                var point = Mathf.Sin(rad) * radius  * right +
-                        Mathf.Cos(rad) * radius  * forward + 
-                        (dirValues[dirIndex] - dirValues[0]) * up;
-
-                point += centerPos;
-                circlePoints[i] = point;
-            }
-
-            Debug.Log(centerPos);
-     
-            return circlePoints;
-        }
-
-        public Mesh CreateHole()
-        {
-            Vector3[] holePoints = CaculateHolePoints();
-            if(holePoints == null || holePoints.Length < 1)
-            {
-                return null;
-            }
-
-            List<int> triangleList = new List<int>();
-            float centerPro = m_HoleDir / (2 * Mathf.PI);
-            int centerIndex = (int)(centerPro * circlePointCount);
-            int vertexStart = vertexList.Count;
-            int preCircleVertexStart = m_HolePointIndex * circlePointCount;
-            int proCircleVertexStart = preCircleVertexStart + circlePointCount;
-
-            int j = m_HolePointIndex + 1;
-            for (int i = - circlePointCount /4 ; i < circlePointCount / 4 ; i++)
-            {
-                var index0 = vertexStart + (i + circlePointCount) % circlePointCount;
-                var index1 = vertexStart + (i + 1 + circlePointCount) % circlePointCount;
-                var index2 = proCircleVertexStart + (centerIndex + i + circlePointCount)% circlePointCount;
-                var index3 = proCircleVertexStart + (centerIndex + i + 1 + circlePointCount) % circlePointCount;
-                triangleList.Add(index0);
-                triangleList.Add(index1);
-                triangleList.Add(index2);
-                triangleList.Add(index1);
-                triangleList.Add(index3);
-                triangleList.Add(index2);
-            }
-
-            for (int i = -circlePointCount / 4; i < circlePointCount / 4; i++)
-            {
-                var index0 = preCircleVertexStart + (centerIndex + i + circlePointCount) % circlePointCount;
-                var index1 = preCircleVertexStart + (centerIndex + i + 1 + circlePointCount) % circlePointCount;
-                var index2 = vertexStart + (circlePointCount / 2 - i) % circlePointCount;
-                var index3 = vertexStart + (circlePointCount / 2 - i - 1) % circlePointCount;
-                triangleList.Add(index0);
-                triangleList.Add(index1);
-                triangleList.Add(index2);
-                triangleList.Add(index1);
-                triangleList.Add(index3);
-                triangleList.Add(index2);
-            }
-
-            for (int i = circlePointCount / 4; i < circlePointCount * 3 / 4; i++)
-            {
-                var index0 = preCircleVertexStart + (centerIndex + i ) % circlePointCount;
-                var index1 = preCircleVertexStart + (centerIndex + i + 1 ) % circlePointCount;
-                var index2 = proCircleVertexStart + (centerIndex + i ) % circlePointCount;
-                var index3 = proCircleVertexStart + (centerIndex + i + 1 ) % circlePointCount;
-                triangleList.Add(index0);
-                triangleList.Add(index1);
-                triangleList.Add(index2);
-                triangleList.Add(index1);
-                triangleList.Add(index3);
-                triangleList.Add(index2);
-            }
-
-
-            for (int i =0;i < holePoints.Length;i++)
-            {
-                vertexList.Add(holePoints[i]);
-            }
-
-            triangleDic[m_HolePointIndex] = triangleList;
-
-            var mesh = new Mesh();
-            mesh.vertices = vertexList.ToArray();
-            //mesh.normals = normalList.ToArray();
-            List<int> triangles = new List<int>();
-            foreach (var list in triangleDic.Values)
-            {
-                triangles.AddRange(list);
-            }
-
-            mesh.triangles = triangles.ToArray();
-            return mesh;
-
-
-        }
-        #endregion
-
-
     }
 
 }

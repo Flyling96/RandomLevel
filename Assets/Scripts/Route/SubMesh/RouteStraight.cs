@@ -6,14 +6,14 @@ namespace DragonSlay.Route
 {
     public class RouteStraight : RouteSubMesh
     {
-        RoutePoint m_Start = null;
-        RoutePoint m_End = null;
 
         public RouteStraight(RoutePoint start, RoutePoint end)
         {
             m_RouteMeshType = RouteSubMeshType.Straight;
             m_Start = start;
             m_End = end;
+            m_Start.AddSubMesh(this);
+            m_End.AddSubMesh(this);
             CaculateRealRoutePoints();
         }
 
@@ -22,6 +22,7 @@ namespace DragonSlay.Route
             base.CaculateRealRoutePoints();
             m_RealRoutePoints.Add(m_Start.m_LocalPos);
             m_RealRoutePoints.Add(m_End.m_LocalPos);
+            CaculateDistance();
         }
 
         public override void CaculateMesh()
@@ -48,6 +49,16 @@ namespace DragonSlay.Route
             }
 
 
+        }
+
+        public override (bool, Vector3) SamplePos(float dis)
+        {
+            if(m_EnterPoint == null || m_NextPoint == null || m_Distance == 0)
+            {
+                return (false,Vector3.zero);
+            }
+
+            return (true, Vector3.Lerp(m_EnterPoint.m_LocalPos, m_NextPoint.m_LocalPos, Mathf.Clamp01(dis / m_Distance)));
         }
     }
 }

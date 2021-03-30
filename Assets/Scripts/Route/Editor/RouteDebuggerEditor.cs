@@ -34,10 +34,20 @@ namespace DragonSlay.Route
                 debugger.ConvertMesh();
             }
 
-            if(GUILayout.Button("CaculateHolePoints"))
+            if (GUILayout.Button("StartRoute"))
             {
-                debugger.CaculateHolePoints();
+                debugger.StartRoute();
             }
+
+            if (GUILayout.Button("SampleRoute"))
+            {
+                debugger.SampleRoute();
+            }
+
+            //if(GUILayout.Button("CaculateHolePoints"))
+            //{
+            //    debugger.CaculateHolePoints();
+            //}
         }
 
         //void SetRoutePointList(SerializedProperty routeProperty)

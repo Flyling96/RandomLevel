@@ -6,10 +6,8 @@ namespace DragonSlay.Route
 {
     public class RouteFork : RouteSubMesh
     {
-        RoutePoint m_Start;
-        RoutePoint m_End;
-        RoutePoint m_Center;
-        List<RoutePoint> m_ForkPoints;
+        RoutePoint m_Center = null;
+        List<RoutePoint> m_ForkPoints = null;
 
         public RouteFork(RoutePoint center)
         {
@@ -18,6 +16,22 @@ namespace DragonSlay.Route
             m_Start = center.m_PrePoint;
             m_End = center.m_ProPoint;
             m_ForkPoints = center.m_ForkPoints;
+
+            m_Start.AddSubMesh(this);
+            m_End.AddSubMesh(this);
+            m_Center.AddSubMesh(this);
+            for(int i =0;i < m_ForkPoints.Count;i++)
+            {
+                m_ForkPoints[i].AddSubMesh(this);
+            }
+
+            CaculateRealRoutePoints();
+            CaculateDistance();
+        }
+
+        public override void CaculateDistance()
+        {
+            m_Distance = 2 * m_RouteCircleRadius;
         }
 
         public override void CaculateMesh()
@@ -54,7 +68,7 @@ namespace DragonSlay.Route
                 {
                     continue;
                 }
-                originBoldPoints.Remove(boldIndex0);
+                originBoldPoints.Remove(index0);
                 var boldIndex1 = preBoldPoints[index1];
                 index1 = preCircleVertexStart + index1;
 
@@ -87,33 +101,33 @@ namespace DragonSlay.Route
                 m_TriangleList.Add(index1);
             }
 
-            //foreach (var index in originBoldPoints)
-            //{
-            //    var index0 = proCircleVertexStart + index;
-            //    var index1 = proCircleVertexStart + index + 1;
-            //    var index2 = preCircleVertexStart + index;
-            //    var index3 = preCircleVertexStart + index + 1;
-            //    m_TriangleList.Add(index0);
-            //    m_TriangleList.Add(index1);
-            //    m_TriangleList.Add(index2);
-            //    m_TriangleList.Add(index1);
-            //    m_TriangleList.Add(index3);
-            //    m_TriangleList.Add(index2);
-            //    if (!originBoldPoints.Contains(index - 1))
-            //    {
-            //        index0 = proCircleVertexStart + index - 1;
-            //        index1 = proCircleVertexStart + index;
-            //        index2 = preCircleVertexStart + index - 1;
-            //        index3 = preCircleVertexStart + index;
-            //        m_TriangleList.Add(index0);
-            //        m_TriangleList.Add(index1);
-            //        m_TriangleList.Add(index2);
-            //        m_TriangleList.Add(index1);
-            //        m_TriangleList.Add(index3);
-            //        m_TriangleList.Add(index2);
-            //    }
+            foreach (var index in originBoldPoints)
+            {
+                var index0 = proCircleVertexStart + index;
+                var index1 = proCircleVertexStart + index + 1;
+                var index2 = preCircleVertexStart + index;
+                var index3 = preCircleVertexStart + index + 1;
+                m_TriangleList.Add(index0);
+                m_TriangleList.Add(index1);
+                m_TriangleList.Add(index2);
+                m_TriangleList.Add(index1);
+                m_TriangleList.Add(index3);
+                m_TriangleList.Add(index2);
+                if (!originBoldPoints.Contains(index - 1))
+                {
+                    index0 = proCircleVertexStart + index - 1;
+                    index1 = proCircleVertexStart + index;
+                    index2 = preCircleVertexStart + index - 1;
+                    index3 = preCircleVertexStart + index;
+                    m_TriangleList.Add(index0);
+                    m_TriangleList.Add(index1);
+                    m_TriangleList.Add(index2);
+                    m_TriangleList.Add(index1);
+                    m_TriangleList.Add(index3);
+                    m_TriangleList.Add(index2);
+                }
 
-            //}
+            }
 
         }
 
@@ -197,6 +211,7 @@ namespace DragonSlay.Route
                 var normal = (holePoints[i] - m_Center.m_LocalPos).normalized;
                 m_VertexList.Add(holePoints[i]);
                 m_NormalList.Add(normal);
+                m_UVList.Add(Vector2.zero);
             }
 
             for (int i = -m_RouteCirclePointCount / 4; i < m_RouteCirclePointCount / 4 + 1; i++)
@@ -292,6 +307,7 @@ namespace DragonSlay.Route
                 point += forkPoint.m_LocalPos;
                 m_VertexList.Add(point);
                 m_NormalList.Add(normal);
+                m_UVList.Add(Vector2.zero);
             }
 
             float angle = Vector3.Angle(forkUp, forward) * Mathf.Deg2Rad
@@ -314,6 +330,62 @@ namespace DragonSlay.Route
 
             return centerIndex;
 
+        }
+
+        public override RoutePoint CaculateNext(RoutePoint enterPoint, Vector2 inputDir)
+        {
+            var defaultPoint = base.CaculateNext(enterPoint, inputDir);
+            if(inputDir == Vector2.zero)
+            {
+                return defaultPoint;
+            }
+
+            var dir = (m_Center.m_LocalPos - enterPoint.m_LocalPos).normalized;
+            Vector3 right, up;
+            CaculateCoordinate(dir, out up, out right);
+            var inputDir3D = (inputDir.x * right + inputDir.y * up).normalized;
+
+            float maxDot = float.MinValue;
+            int targetIndex = -1;
+            for(int i =0;i < m_ForkPoints.Count;i++)
+            {
+                dir = (m_ForkPoints[i].m_LocalPos - m_Center.m_LocalPos).normalized;
+                var dot = Vector3.Dot(dir, inputDir3D);
+                if(dot > maxDot)
+                {
+                    maxDot = dot;
+                    targetIndex = i;
+                }
+            }
+
+            if(maxDot > 0.5f && targetIndex > -1)
+            {
+                return m_ForkPoints[targetIndex];
+            }
+
+            return defaultPoint;
+        }
+
+        public override (bool, Vector3) SamplePos(float dis)
+        {
+            if (m_EnterPoint == null || m_NextPoint == null || m_Distance == 0)
+            {
+                return (false, Vector3.zero);
+            }
+
+            if (dis > m_Distance)
+            {
+                return (true, m_NextPoint.m_LocalPos);
+            }
+
+            if(dis < m_Distance/2)
+            {
+                return (true, Vector3.Lerp(m_EnterPoint.m_LocalPos, m_Center.m_LocalPos, Mathf.Clamp01( 2 * dis / m_Distance)));
+            }
+            else
+            {
+                return (true, Vector3.Lerp(m_Center.m_LocalPos, m_NextPoint.m_LocalPos, Mathf.Clamp01( 2 * dis / m_Distance - 1)));
+            }
         }
 
 

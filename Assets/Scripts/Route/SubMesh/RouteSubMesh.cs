@@ -9,6 +9,7 @@ namespace DragonSlay.Route
     {
         public List<Vector3> m_VertexList;
         public List<Vector3> m_NormalList;
+        public List<Vector2> m_UVList;
         public List<int> m_TriangleList;
     }
 
@@ -23,8 +24,12 @@ namespace DragonSlay.Route
             Intersection,   //十字路口
         }
 
-        public int m_RouteCirclePointCount = 8;
+        public int m_RouteCirclePointCount = 48;
         public float m_RouteCircleRadius = 3;
+        public float m_Distance = 0;
+
+        protected RoutePoint m_Start = null;
+        protected RoutePoint m_End = null;
 
         protected RouteSubMeshType m_RouteMeshType = RouteSubMeshType.Straight;
 
@@ -32,6 +37,8 @@ namespace DragonSlay.Route
         protected List<Vector3> m_VertexList = new List<Vector3>();
         [SerializeField]
         protected List<Vector3> m_NormalList = new List<Vector3>();
+        [SerializeField]
+        protected List<Vector2> m_UVList = new List<Vector2>();
         [SerializeField]
         protected List<int> m_TriangleList = new List<int>();
 
@@ -68,8 +75,10 @@ namespace DragonSlay.Route
                     Mathf.Cos(rad) * m_RouteCircleRadius * up;
                 var normal = point.normalized;
                 point += startPos;
+                Vector2 uv = new Vector2(0, rad * m_RouteCircleRadius);
                 m_VertexList.Add(point);
                 m_NormalList.Add(normal);
+                m_UVList.Add(uv);
             }
 
             for (int i = 0; i < m_RouteCirclePointCount; i++)
@@ -79,8 +88,10 @@ namespace DragonSlay.Route
                     Mathf.Cos(rad) * m_RouteCircleRadius * up;
                 var normal = point.normalized;
                 point += endPos;
+                Vector2 uv = new Vector2((endPos - startPos).magnitude, rad * m_RouteCircleRadius);
                 m_VertexList.Add(point);
                 m_NormalList.Add(normal);
+                m_UVList.Add(uv);
             }
         }
 
@@ -89,12 +100,27 @@ namespace DragonSlay.Route
         {
             m_VertexList.Clear();
             m_NormalList.Clear();
+            m_UVList.Clear();
             m_TriangleList.Clear();
         }
 
         public virtual void CaculateRealRoutePoints()
         {
             m_RealRoutePoints.Clear();
+        }
+
+        protected float[] m_RealPointDises = null;
+        public virtual void CaculateDistance()
+        {
+            m_Distance = 0;
+            m_RealPointDises = new float[m_RealRoutePoints.Count];
+            m_RealPointDises[0] = 0;
+            for (int i =1;i < m_RealRoutePoints.Count;i++)
+            {
+                var dis = (m_RealRoutePoints[i] - m_RealRoutePoints[i - 1]).magnitude;
+                m_Distance += dis;
+                m_RealPointDises[i] = m_Distance;
+            }
         }
 
         public Mesh ConvertMesh()
@@ -112,6 +138,7 @@ namespace DragonSlay.Route
             MeshData meshData;
             meshData.m_VertexList = m_VertexList;
             meshData.m_NormalList = m_NormalList;
+            meshData.m_UVList = m_UVList;
             List<int> triangleList = new List<int>();
             for(int i =0;i< m_TriangleList.Count;i++)
             {
@@ -120,6 +147,39 @@ namespace DragonSlay.Route
             meshData.m_TriangleList = triangleList;
             return meshData;
         }
+
+        #region Sample
+        public RoutePoint m_NextPoint = null;
+        public RoutePoint m_EnterPoint = null;
+
+        public void EnterSubMesh(RoutePoint enterPoint,Vector2 inputDir)
+        {
+            m_NextPoint = CaculateNext(enterPoint, inputDir);
+            m_EnterPoint = enterPoint;
+        }
+
+        public virtual RoutePoint CaculateNext(RoutePoint enterPoint, Vector2 inputDir)
+        {
+            if(m_Start == enterPoint)
+            {
+                return m_End;
+            }
+            else
+            {
+                return m_Start;
+            }
+        }
+
+        public virtual (bool,Vector3) SamplePos(float dis)
+        {
+            if(m_EnterPoint == null)
+            {
+                return (false,Vector3.zero);
+            }
+
+            return (true,m_EnterPoint.m_LocalPos);
+        }
+        #endregion
 
     }
 }
