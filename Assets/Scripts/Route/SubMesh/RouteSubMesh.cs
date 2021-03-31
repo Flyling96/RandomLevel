@@ -81,7 +81,7 @@ namespace DragonSlay.Route
                     Mathf.Cos(rad) * m_RouteCircleRadius * up;
                 var normal = point.normalized;
                 point += startPos;
-                Vector2 uv = new Vector2(0, rad * m_RouteCircleRadius);
+                Vector2 uv = new Vector2(0, (rad > Mathf.PI ? 2 * Mathf.PI - rad : rad)* m_RouteCircleRadius);
                 m_VertexList.Add(point);
                 m_NormalList.Add(normal);
                 m_UVList.Add(uv);
@@ -94,7 +94,8 @@ namespace DragonSlay.Route
                     Mathf.Cos(rad) * m_RouteCircleRadius * up;
                 var normal = point.normalized;
                 point += endPos;
-                Vector2 uv = new Vector2((endPos - startPos).magnitude, rad * m_RouteCircleRadius);
+                Vector2 uv = new Vector2((endPos - startPos).magnitude, 
+                    (rad > Mathf.PI ? 2 * Mathf.PI - rad : rad) * m_RouteCircleRadius);
                 m_VertexList.Add(point);
                 m_NormalList.Add(normal);
                 m_UVList.Add(uv);

@@ -55,9 +55,16 @@ namespace DragonSlay.Route
                 float disY = 0;
                 for (int i = 0; i < m_RouteCirclePointCount; i++)
                 {
-                    if(i > 1)
+                    if (i > 0)
                     {
-                        disY += (cylinderPoints[j, i] - cylinderPoints[j, i - 1]).magnitude;
+                        if (i < m_RouteCirclePointCount / 2)
+                        {
+                            disY += (cylinderPoints[j, i] - cylinderPoints[j, i - 1]).magnitude;
+                        }
+                        else
+                        {
+                            disY -= (cylinderPoints[j, i] - cylinderPoints[j, i - 1]).magnitude;
+                        }
                     }
                     var cylinderPoint = cylinderPoints[j, i];
                     var normal = (cylinderPoint - point).normalized;
