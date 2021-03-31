@@ -1,23 +1,43 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 namespace DragonSlay.Route
 {
     [System.Serializable]
     public class RoutePoint : ISerializationCallbackReceiver
     {
+        public ulong m_UID;
+
         public Vector3 m_LocalPos;
 
+        public bool m_IsMain = false;
+
         //public List<RoutePoint> m_NeighborPoints = new List<RoutePoint>();
-
+        [NonSerialized]
         public RoutePoint m_PrePoint = null;
+        [SerializeField]
+        private ulong m_SerializedPrePointUID;
 
+        public ulong SerializedPrePointUID { get { return m_SerializedPrePointUID; }}
+
+        [NonSerialized]
         public RoutePoint m_ProPoint = null;
+        [SerializeField]
+        private ulong m_SerializedProPointUID;
 
-        [HideInInspector]
+        public ulong SerializedProPointUID { get { return m_SerializedProPointUID; } }
+
+        [NonSerialized]
         public List<RoutePoint> m_ForkPoints = new List<RoutePoint>();
-        [HideInInspector]
+
+        [SerializeField]
+        private List<ulong> m_SerializedForkPointUIDs = new List<ulong>();
+
+        public List<ulong> SerializedForkPointUIDs { get { return m_SerializedForkPointUIDs; } }
+
+        [NonSerialized]
         public RouteSubMesh[] m_BelongSubMeshes = new RouteSubMesh[2];
 
         public RoutePoint(Vector3 localPos)
@@ -37,13 +57,24 @@ namespace DragonSlay.Route
             }
         }
 
+        public void ClearSubMesh()
+        {
+            if(m_BelongSubMeshes == null)
+            {
+                m_BelongSubMeshes = new RouteSubMesh[2];
+            }
+
+            m_BelongSubMeshes[0] = null;
+            m_BelongSubMeshes[1] = null;
+        }
+
         public RouteSubMesh GetOtherSubMesh(RouteSubMesh subMesh)
         {
             if (m_BelongSubMeshes[0] == subMesh)
             {
                 return m_BelongSubMeshes[1];
             }
-            else;
+            else
             {
                 return m_BelongSubMeshes[0];
             }
@@ -159,7 +190,45 @@ namespace DragonSlay.Route
 
         public void OnBeforeSerialize()
         {
-            
+            if(m_PrePoint != null)
+            {
+                m_SerializedPrePointUID = m_PrePoint.m_UID;
+            }
+            else
+            {
+                m_SerializedPrePointUID = 0;
+            }
+
+            if(m_ProPoint != null)
+            {
+                m_SerializedProPointUID = m_ProPoint.m_UID;
+            }
+            else
+            {
+                m_SerializedProPointUID = 0;
+            }
+
+            if(m_SerializedForkPointUIDs == null)
+            {
+                m_SerializedForkPointUIDs = new List<ulong>();
+            }
+
+            m_SerializedForkPointUIDs.Clear();
+            if (m_ForkPoints != null)
+            {
+                for (int i = 0; i < m_ForkPoints.Count; i++)
+                {
+                    var forkPoint = m_ForkPoints[i];
+                    if (forkPoint != null)
+                    {
+                        m_SerializedForkPointUIDs.Add(forkPoint.m_UID);
+                    }
+                    else
+                    {
+                        m_SerializedForkPointUIDs.Add(0);
+                    }
+                }
+            }
         }
 
         public void OnAfterDeserialize()

@@ -28,10 +28,14 @@ namespace DragonSlay.Route
         protected float m_RouteCircleRadius = 0;
         public float m_Distance = 0;
 
+        public ulong m_UID = 0;
+        public static ulong index = 0;
+
         public RouteSubMesh(float radius,int pointCount)
         {
             m_RouteCircleRadius = radius;
             m_RouteCirclePointCount = pointCount;
+            m_UID = 100000000 + index++;
         }
 
         protected RoutePoint m_Start = null;

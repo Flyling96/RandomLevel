@@ -29,6 +29,11 @@ namespace DragonSlay.Route
                 debugger.GenerateRouteGraph();
             }
 
+            if(GUILayout.Button("CaculateSubMesh"))
+            {
+                debugger.CaculateSubMesh();
+            }
+
             if (GUILayout.Button("ConvertMesh"))
             {
                 debugger.ConvertMesh();

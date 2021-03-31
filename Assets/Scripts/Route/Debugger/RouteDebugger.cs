@@ -91,6 +91,11 @@ namespace DragonSlay.Route
 
         }
 
+        public void CaculateSubMesh()
+        {
+            Route.CaculateSubMesh();
+        }
+
         public void ConvertMesh()
         {
             var mesh = Route.ConvertSubMeshes();

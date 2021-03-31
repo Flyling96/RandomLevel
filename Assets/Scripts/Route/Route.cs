@@ -13,6 +13,14 @@ namespace DragonSlay.Route
 
         private Matrix4x4 m_TRS;
 
+        public Matrix4x4 TRS
+        {
+            get
+            {
+                return m_TRS;
+            }
+        }
+
         public void UpdateTransform(Vector3 pos,Quaternion rot)
         {
             bool isChange = false;
@@ -34,8 +42,8 @@ namespace DragonSlay.Route
             }
         }
 
-
-        List<RoutePoint> m_Points = new List<RoutePoint>();
+        [HideInInspector]
+        public List<RoutePoint> m_Points = new List<RoutePoint>();
 
 
         public Route(Vector3 pos,Quaternion rot)
@@ -52,6 +60,7 @@ namespace DragonSlay.Route
         public void AddPoints(Vector3 pos)
         {
             RoutePoint newPoint = new RoutePoint(Matrix4x4.Inverse(m_TRS).MultiplyPoint(pos));
+            newPoint.m_IsMain = true;
             m_Points.Add(newPoint);
         }
 
@@ -92,36 +101,18 @@ namespace DragonSlay.Route
             end.OnConnect(start,true);
         }
 
-        public void OnBeforeSerialize()
+        public Vector3 GetPointPos(int index)
         {
+            if(index > m_Points.Count - 1)
+            {
+                return Vector3.zero;
+            }
 
+            return m_TRS.MultiplyPoint(m_Points[index].m_LocalPos);
         }
 
-        public void OnAfterDeserialize()
-        {
-            m_TRS = Matrix4x4.TRS(m_Position, m_Rotation, Vector3.one);
-            if (m_ComplateRoutePoints == null)
-            {
-                m_ComplateRoutePoints = new HashSet<RoutePoint>();
-            }
 
-            if (m_GateRoutePoints == null)
-            {
-                m_GateRoutePoints = new List<RoutePoint>();
-            }
-
-            if (m_SubMeshList == null)
-            {
-                m_SubMeshList = new List<RouteSubMesh>();
-            }
-
-            if(m_Points == null)
-            {
-                m_Points = new List<RoutePoint>();
-            }
-        }
-
-        HashSet<RoutePoint> m_ComplateRoutePoints = new HashSet<RoutePoint>();
+      
         List<RoutePoint> m_GateRoutePoints = new List<RoutePoint>();
 
         public float m_CircleRadius = 3;
@@ -129,11 +120,11 @@ namespace DragonSlay.Route
 
         public void AutoFillPoint()
         {
-            m_ComplateRoutePoints.Clear();
+            HashSet<RoutePoint> complateRoutePoints = new HashSet<RoutePoint>();
             for (int i = 0; i < m_Points.Count;i++)
             {
                 var point = m_Points[i];
-                m_ComplateRoutePoints.Add(point);
+                complateRoutePoints.Add(point);
                 
                 if(point.IsTurn || point.IsFork)
                 {
@@ -146,14 +137,14 @@ namespace DragonSlay.Route
                         var pos = point.m_LocalPos + dir0.normalized * m_CircleRadius;
                         var p = new RoutePoint(pos);
                         InsertPoint(pre, point, p);
-                        m_ComplateRoutePoints.Add(p);
+                        complateRoutePoints.Add(p);
                     }
                     if(dir1.magnitude > m_CircleRadius)
                     {
                         var pos = point.m_LocalPos + dir1.normalized * m_CircleRadius;
                         var p = new RoutePoint(pos);
                         InsertPoint(point, pro, p);
-                        m_ComplateRoutePoints.Add(p);
+                        complateRoutePoints.Add(p);
                     }
                 }
 
@@ -168,11 +159,21 @@ namespace DragonSlay.Route
                             var pos = point.m_LocalPos + dir.normalized * m_CircleRadius;
                             var p = new RoutePoint(pos);
                             InsertPoint(point, forkPoint, p);
-                            m_ComplateRoutePoints.Add(p);
+                            complateRoutePoints.Add(p);
                         }
                     }
                 }
             }
+
+            foreach(var point in complateRoutePoints)
+            {
+                if(!m_Points.Contains(point))
+                {
+                    m_Points.Add(point);
+                }
+            }
+
+            //m_Points = m_ComplateRoutePoints;
         }
 
         List<RouteSubMesh> m_SubMeshList = new List<RouteSubMesh>();
@@ -180,16 +181,29 @@ namespace DragonSlay.Route
         {
             AutoFillPoint();
 
+            for(int i =0;i< m_Points.Count;i++)
+            {
+                m_Points[i].ClearSubMesh();
+            }
+
             m_SubMeshList.Clear();
             m_GateRoutePoints.Clear();
-            foreach (var point in m_ComplateRoutePoints)
+            HashSet<RoutePoint> hasStraightSet = new HashSet<RoutePoint>();
+            foreach (var point in m_Points)
             {
                 if (point.IsStraight)
                 {
-                    var straight = CaculateRouteStraight(point);
-                    if (straight != null)
+                    if (!hasStraightSet.Contains(point))
                     {
-                        m_SubMeshList.Add(straight);
+                        var straight = CaculateRouteStraight(point, hasStraightSet);
+                        if (straight != null)
+                        {
+                            m_SubMeshList.Add(straight);
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log("hasStraightSet");
                     }
 
                     if (point.IsGate)
@@ -218,12 +232,11 @@ namespace DragonSlay.Route
                 }
 
             }
+            Debug.Log(m_SubMeshList.Count);
         }
 
         public Mesh ConvertSubMeshes()
         {
-            CaculateSubMesh();
-
             List<Vector3> vertexList = new List<Vector3>();
             List<Vector3> normalList = new List<Vector3>();
             List<Vector2> uvList = new List<Vector2>();
@@ -248,29 +261,46 @@ namespace DragonSlay.Route
             return mesh;
         }
 
-        RouteStraight CaculateRouteStraight(RoutePoint point)
+        
+        RouteStraight CaculateRouteStraight(RoutePoint point,HashSet<RoutePoint> hasStraightSet)
         {
             var pre = point.m_PrePoint;
             var pro = point.m_ProPoint;
             //中间点不做处理
-            if(pre!= null && pre.IsStraight)
-            {
-                return null;
-            }
-            if(pro == null)
+            if(pre!= null && pre.IsStraight && pro!=null && pro.IsStraight)
             {
                 return null;
             }
 
             var start = point;
-            var end = pro;
+            var end = start;
+            hasStraightSet.Add(start);
+            hasStraightSet.Add(end);
 
-            while(pro!=null && pro.IsStraight)
+            if (pro == null)
             {
-                end = pro;
-                pro = pro.m_ProPoint;
+                pro = pre;
+            }
+            else if (pre!=null && pre.IsStraight)
+            {
+                pro = pre;
             }
 
+            int maxIndex = 20;
+            while(maxIndex-- > -1 &&pro != null && pro.IsStraight)
+            {
+                if(pro.m_ProPoint != end)
+                {
+                    end = pro;
+                    pro = pro.m_ProPoint;
+                }
+                else if(pro.m_PrePoint != end)
+                {
+                    end = pro;
+                    pro = pro.m_PrePoint;
+                }
+                hasStraightSet.Add(end);
+            }
             RouteStraight straight = new RouteStraight(start, end, m_CircleRadius,m_CirclePointCount);
             return straight;
         }
@@ -388,6 +418,71 @@ namespace DragonSlay.Route
         }
 
         #endregion
+
+
+        public void OnBeforeSerialize()
+        {
+            ulong uidOffset = 10000000;
+            ulong index = 0;
+            for(int i =0;i < m_Points.Count;i++)
+            {
+                m_Points[i].m_UID = uidOffset + index;
+                index++;
+            }
+        }
+
+        public void OnAfterDeserialize()
+        {
+            m_TRS = Matrix4x4.TRS(m_Position, m_Rotation, Vector3.one);
+
+            if (m_GateRoutePoints == null)
+            {
+                m_GateRoutePoints = new List<RoutePoint>();
+            }
+
+            if (m_SubMeshList == null)
+            {
+                m_SubMeshList = new List<RouteSubMesh>();
+            }
+
+            if (m_Points == null)
+            {
+                m_Points = new List<RoutePoint>();
+            }
+
+            Dictionary<ulong, RoutePoint> routePointDic = new Dictionary<ulong, RoutePoint>();
+            for(int i = 0; i< m_Points.Count;i++)
+            {
+                routePointDic.Add(m_Points[i].m_UID, m_Points[i]);
+            }
+
+            for (int i = 0; i < m_Points.Count; i++)
+            {
+                var point = m_Points[i];
+                RoutePoint outPoint;
+                if(routePointDic.TryGetValue(point.SerializedPrePointUID,out outPoint))
+                {
+                    point.m_PrePoint = outPoint;
+                }
+
+                if (routePointDic.TryGetValue(point.SerializedProPointUID, out outPoint))
+                {
+                    point.m_ProPoint = outPoint;
+                }
+
+                point.m_ForkPoints.Clear();
+                for (int j =0;j < point.SerializedForkPointUIDs.Count;j++)
+                {
+                    var forkPointId = point.SerializedForkPointUIDs[j];
+                    if(routePointDic.TryGetValue(forkPointId,out outPoint))
+                    {
+                        point.m_ForkPoints.Add(outPoint);
+                    }
+                }
+            }
+
+
+        }
     }
 
 }
